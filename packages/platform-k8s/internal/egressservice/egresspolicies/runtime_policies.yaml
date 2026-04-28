@@ -1,0 +1,44 @@
+policies:
+  - policyId: custom.api
+    includeRuntimeUrlHost: true
+    targetPathPrefixes: ["/"]
+  - policyId: protocol.default
+    includeRuntimeUrlHost: true
+    targetPathPrefixes: ["/"]
+  - policyId: protocol.openai-compatible
+    includeRuntimeUrlHost: true
+    targetPathPrefixes: ["/"]
+  - policyId: protocol.openai-responses
+    includeRuntimeUrlHost: true
+    targetPathPrefixes: ["/"]
+  - policyId: protocol.anthropic
+    includeRuntimeUrlHost: true
+    targetPathPrefixes: ["/"]
+  - policyId: protocol.gemini
+    includeRuntimeUrlHost: true
+    targetPathPrefixes: ["/"]
+  - policyId: cli.google-oauth
+    includeRuntimeUrlHost: true
+    extraTargetHosts:
+      - oauth2.googleapis.com
+      - www.googleapis.com
+    targetPathPrefixes: ["/"]
+  - policyId: cli.openai-oauth
+    includeRuntimeUrlHost: true
+    extraTargetHosts:
+      - auth.openai.com
+      - api.openai.com
+    targetPathPrefixes: ["/"]
+  - policyId: vendor.openai
+    includeRuntimeUrlHost: true
+    extraTargetHosts:
+      - api.openai.com
+      - auth.openai.com
+    targetPathPrefixes: ["/"]
+  - policyId: vendor.google
+    includeRuntimeUrlHost: true
+    extraTargetHosts:
+      - cloudcode-pa.googleapis.com
+      - oauth2.googleapis.com
+      - www.googleapis.com
+    targetPathPrefixes: ["/"]

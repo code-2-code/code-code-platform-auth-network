@@ -1,0 +1,53 @@
+policies:
+  - policyId: protocol.openai-compatible.api-key
+    materializations:
+      - materializationKey: protocol.openai-compatible.api-key
+        requestReplacementRules:
+          - mode: bearer
+            headerName: authorization
+            materialKey: api_key
+            headerValuePrefix: Bearer
+  - policyId: protocol.openai-responses.api-key
+    materializations:
+      - materializationKey: protocol.openai-responses.api-key
+        requestReplacementRules:
+          - mode: bearer
+            headerName: authorization
+            materialKey: api_key
+            headerValuePrefix: Bearer
+  - policyId: protocol.anthropic.api-key
+    materializations:
+      - materializationKey: protocol.anthropic.api-key
+        requestReplacementRules:
+          - mode: x-api-key
+            headerName: x-api-key
+            materialKey: api_key
+  - policyId: protocol.gemini.api-key
+    materializations:
+      - materializationKey: protocol.gemini.api-key
+        requestReplacementRules:
+          - mode: google-api-key
+            headerName: x-goog-api-key
+            materialKey: api_key
+  - policyId: cli.openai-oauth
+    materializations:
+      - materializationKey: codex.openai-oauth
+        requestReplacementRules:
+          - mode: bearer
+            headerName: authorization
+            materialKey: access_token
+            headerValuePrefix: Bearer
+  - policyId: cli.google-oauth
+    materializations:
+      - materializationKey: antigravity.google-oauth
+        requestReplacementRules:
+          - mode: bearer
+            headerName: authorization
+            materialKey: access_token
+            headerValuePrefix: Bearer
+      - materializationKey: gemini-cli.google-oauth
+        requestReplacementRules:
+          - mode: bearer
+            headerName: authorization
+            materialKey: access_token
+            headerValuePrefix: Bearer

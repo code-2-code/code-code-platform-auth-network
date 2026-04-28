@@ -53,9 +53,6 @@ func (s CredentialDefinitionResourceSpec) MarshalJSON() ([]byte, error) {
 		}
 		out["definition"] = value
 	}
-	if s.SecretSource != nil {
-		out["secretSource"] = s.SecretSource
-	}
 	return json.Marshal(out)
 }
 
@@ -74,13 +71,6 @@ func (s *CredentialDefinitionResourceSpec) UnmarshalJSON(data []byte) error {
 		}
 	}
 	s.Definition = definition
-	if value := raw["secretSource"]; len(value) > 0 && string(value) != "null" {
-		source := &CredentialSecretSource{}
-		if err := json.Unmarshal(value, source); err != nil {
-			return err
-		}
-		s.SecretSource = source
-	}
 	return nil
 }
 

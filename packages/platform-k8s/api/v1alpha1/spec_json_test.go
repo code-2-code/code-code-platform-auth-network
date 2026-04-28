@@ -20,7 +20,6 @@ func TestCredentialDefinitionSpecJSONUsesProtoJSONNames(t *testing.T) {
 				},
 			},
 		},
-		SecretSource: &CredentialSecretSource{Name: "credential-codex"},
 	}
 
 	raw, err := json.Marshal(spec)
@@ -28,12 +27,12 @@ func TestCredentialDefinitionSpecJSONUsesProtoJSONNames(t *testing.T) {
 		t.Fatalf("marshal spec: %v", err)
 	}
 	body := string(raw)
-	for _, expected := range []string{`"credentialId"`, `"displayName"`, `"oauthMetadata"`, `"cliId"`, `"secretSource"`} {
+	for _, expected := range []string{`"credentialId"`, `"displayName"`, `"oauthMetadata"`, `"cliId"`} {
 		if !strings.Contains(body, expected) {
 			t.Fatalf("expected %s in %s", expected, body)
 		}
 	}
-	for _, unexpected := range []string{`"credential_id"`, `"display_name"`, `"KindMetadata"`, `"OauthMetadata"`} {
+	for _, unexpected := range []string{`"credential_id"`, `"display_name"`, `"KindMetadata"`, `"OauthMetadata"`, `"secretSource"`} {
 		if strings.Contains(body, unexpected) {
 			t.Fatalf("did not expect %s in %s", unexpected, body)
 		}

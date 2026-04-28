@@ -15,8 +15,8 @@ type CommonStatusFields struct {
 	Conditions         []metav1.Condition `json:"conditions,omitempty"`
 }
 
-// CredentialDefinitionResource stores one credential definition plus its
-// material source in externalized platform state.
+// CredentialDefinitionResource stores one credential definition in externalized
+// platform state. Credential material is owned by auth-service storage.
 type CredentialDefinitionResource struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -24,18 +24,9 @@ type CredentialDefinitionResource struct {
 	Status            CredentialDefinitionResourceStatus `json:"status,omitempty"`
 }
 
-// CredentialDefinitionResourceSpec stores one credential definition payload
-// and the Secret carrying provider-ready material.
+// CredentialDefinitionResourceSpec stores one credential definition payload.
 type CredentialDefinitionResourceSpec struct {
-	Definition   *credentialv1.CredentialDefinition `json:"definition,omitempty"`
-	SecretSource *CredentialSecretSource            `json:"secretSource,omitempty"`
-}
-
-// CredentialSecretSource identifies the Kubernetes Secret that carries
-// provider-ready material for one credential. Key names within the Secret
-// follow fixed conventions (e.g. "api_key", "access_token").
-type CredentialSecretSource struct {
-	Name string `json:"name,omitempty"`
+	Definition *credentialv1.CredentialDefinition `json:"definition,omitempty"`
 }
 
 // CredentialDefinitionResourceStatus stores controller-owned credential

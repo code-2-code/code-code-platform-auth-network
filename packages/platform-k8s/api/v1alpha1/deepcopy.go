@@ -11,9 +11,6 @@ import (
 func (in *CredentialDefinitionResourceSpec) DeepCopyInto(out *CredentialDefinitionResourceSpec) {
 	*out = *in
 	out.Definition = cloneCredentialDefinition(in.Definition)
-	if in.SecretSource != nil {
-		out.SecretSource = in.SecretSource.DeepCopy()
-	}
 }
 
 func (in *CredentialDefinitionResourceSpec) DeepCopy() *CredentialDefinitionResourceSpec {
