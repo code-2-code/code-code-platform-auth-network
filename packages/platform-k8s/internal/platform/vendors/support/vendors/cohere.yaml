@@ -1,0 +1,11 @@
+---
+providerBindings:
+- providerBinding:
+    surfaceId: openai-compatible
+  surfaceTemplates:
+  - runtime:
+      api:
+        baseUrl: https://api.cohere.ai/compatibility/v1
+        protocol: PROTOCOL_OPENAI_COMPATIBLE
+      displayName: Cohere OpenAI Compatibility API
+    surfaceId: openai-compatible

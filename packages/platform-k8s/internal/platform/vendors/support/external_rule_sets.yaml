@@ -1,0 +1,233 @@
+ruleSets:
+  - ruleSetId: support.external-rule-set.bootstrap
+    displayName: Preset External Rule Set
+    ownerService: platform-support-service
+    policyId: code-code-egress
+    sourceServiceAccounts:
+      - code-code/platform-support-service
+      - code-code-runs/cli-runtime-image-build
+    rules:
+      - ruleId: brew-api
+        displayName: Homebrew API
+        hostExact: formulae.brew.sh
+        port: 443
+        protocol: tls
+        resolution: dns
+        proxyEndpointId: preset-proxy
+      - ruleId: npm-registry
+        displayName: NPM Registry
+        hostExact: registry.npmjs.org
+        port: 443
+        protocol: tls
+        resolution: dns
+        proxyEndpointId: preset-proxy
+      - ruleId: github-raw-content
+        displayName: GitHub Raw Content
+        hostExact: raw.githubusercontent.com
+        port: 443
+        protocol: tls
+        resolution: dns
+        proxyEndpointId: preset-proxy
+      - ruleId: docker-registry
+        displayName: Docker Hub Registry
+        hostExact: registry-1.docker.io
+        port: 443
+        protocol: tls
+        resolution: dns
+        proxyEndpointId: preset-proxy
+      - ruleId: docker-auth
+        displayName: Docker Hub Auth
+        hostExact: auth.docker.io
+        port: 443
+        protocol: tls
+        resolution: dns
+        proxyEndpointId: preset-proxy
+      - ruleId: docker-cdn
+        displayName: Docker Hub CDN Cloudflare
+        hostExact: production.cloudflare.docker.com
+        port: 443
+        protocol: tls
+        resolution: dns
+        proxyEndpointId: preset-proxy
+      - ruleId: docker-cdn-cloudfront
+        displayName: Docker Hub CDN Cloudfront
+        hostExact: production.cloudfront.docker.com
+        port: 443
+        protocol: tls
+        resolution: dns
+        proxyEndpointId: preset-proxy
+      - ruleId: docker-index
+        displayName: Docker Hub Index
+        hostExact: index.docker.io
+        port: 443
+        protocol: tls
+        resolution: dns
+        proxyEndpointId: preset-proxy
+      - ruleId: openai-api
+        destinationId: protocol.openai-compatible.api
+        displayName: OpenAI Compatible API
+        hostExact: api.openai.com
+        port: 443
+        protocol: tls
+        resolution: dns
+        sourceServiceAccounts:
+          - code-code/platform-agent-runtime-service
+        proxyEndpointId: preset-proxy
+      - ruleId: mistral-api
+        destinationId: vendor.mistral.api
+        displayName: Mistral API
+        hostExact: api.mistral.ai
+        port: 443
+        protocol: tls
+        resolution: dns
+        sourceServiceAccounts:
+          - code-code/platform-agent-runtime-service
+          - code-code/platform-provider-service
+          - code-code/provider-host-blackbox-exporter
+        proxyEndpointId: preset-proxy
+      - ruleId: mistral-console
+        destinationId: vendor.mistral.console
+        displayName: Mistral Console
+        hostExact: console.mistral.ai
+        port: 443
+        protocol: tls
+        resolution: dns
+        sourceServiceAccounts:
+          - code-code/platform-provider-service
+        proxyEndpointId: preset-proxy
+      - ruleId: google-aistudio-rpc
+        destinationId: vendor.google.aistudio.rpc
+        displayName: Google AI Studio RPC
+        hostExact: alkalimakersuite-pa.clients6.google.com
+        port: 443
+        protocol: tls
+        resolution: dns
+        sourceServiceAccounts:
+          - code-code/platform-provider-service
+        proxyEndpointId: preset-proxy
+      - ruleId: google-generative-language-api
+        destinationId: vendor.google.generative-language-api
+        displayName: Google Generative Language API
+        hostExact: generativelanguage.googleapis.com
+        port: 443
+        protocol: tls
+        resolution: dns
+        sourceServiceAccounts:
+          - code-code/platform-provider-service
+          - code-code/provider-host-blackbox-exporter
+        proxyEndpointId: preset-proxy
+  - ruleSetId: support.external-rule-set.model-catalog-sources
+    displayName: Model Catalog Source Egress
+    ownerService: platform-support-service
+    policyId: code-code-egress
+    sourceServiceAccounts:
+      - code-code/platform-model-service
+    rules:
+      - ruleId: azure-models-inference
+        displayName: Azure Models Inference Catalog
+        hostExact: models.inference.ai.azure.com
+        port: 443
+        protocol: tls
+        resolution: dns
+        proxyEndpointId: preset-proxy
+      - ruleId: cerebras-api
+        displayName: Cerebras Catalog
+        hostExact: api.cerebras.ai
+        port: 443
+        protocol: tls
+        resolution: dns
+        proxyEndpointId: preset-proxy
+      - ruleId: huggingface
+        displayName: Hugging Face Catalog
+        hostExact: huggingface.co
+        port: 443
+        protocol: tls
+        resolution: dns
+        proxyEndpointId: preset-proxy
+      - ruleId: modelscope-inference
+        displayName: ModelScope Inference Catalog
+        hostExact: api-inference.modelscope.cn
+        port: 443
+        protocol: tls
+        resolution: dns
+        proxyEndpointId: preset-proxy
+      - ruleId: nvidia-integrate
+        displayName: NVIDIA Integrate Catalog
+        hostExact: integrate.api.nvidia.com
+        port: 443
+        protocol: tls
+        resolution: dns
+        proxyEndpointId: preset-proxy
+      - ruleId: openrouter
+        displayName: OpenRouter Catalog
+        hostExact: openrouter.ai
+        port: 443
+        protocol: tls
+        resolution: dns
+        proxyEndpointId: preset-proxy
+  - ruleSetId: support.external-rule-set.l7-smoke
+    displayName: L7 Smoke External Rule Set
+    ownerService: platform-support-service
+    policyId: code-code-egress
+    startupSync: false
+    sourceServiceAccounts:
+      - code-code/l7-smoke-client
+    rules:
+      - ruleId: httpbin-headers
+        displayName: HTTPBin Headers
+        hostExact: httpbin.org
+        port: 443
+        protocol: https
+        resolution: dns
+    httpInspectionRules:
+      - inspectionRuleId: httpbin-headers
+        displayName: HTTPBin Headers L7 Smoke
+        destinationId: support.external-rule-set.l7-smoke.httpbin-headers
+        matches:
+          - pathPrefixes:
+              - /headers
+              - /response-headers
+            methods:
+              - GET
+        requestHeaders:
+          set:
+            - name: X-Code-Code-L7-Smoke
+              value: enabled
+          remove:
+            - X-Code-Code-Debug-Remove
+        responseHeaders:
+          set:
+            - name: X-Code-Code-L7-Response
+              value: enabled
+          remove:
+            - X-Code-Code-Response-Debug
+  - ruleSetId: support.external-rule-set.l7-dynamic-authz-smoke
+    displayName: L7 Dynamic Authz Smoke External Rule Set
+    ownerService: platform-support-service
+    policyId: code-code-egress
+    startupSync: false
+    sourceServiceAccounts:
+      - code-code/l7-smoke-client
+    rules:
+      - ruleId: httpbin-dynamic-authz
+        displayName: HTTPBin Dynamic Authz
+        hostExact: httpbin.org
+        port: 443
+        protocol: https
+        resolution: dns
+    httpInspectionRules:
+      - inspectionRuleId: httpbin-dynamic-authz
+        displayName: HTTPBin Dynamic Authz L7 Smoke
+        destinationId: support.external-rule-set.l7-dynamic-authz-smoke.httpbin-dynamic-authz
+        dynamicHeaderAuthz: true
+        matches:
+          - pathPrefixes:
+              - /headers
+            methods:
+              - GET
+        requestHeaders:
+          set:
+            - name: X-Code-Code-L7-Smoke
+              value: enabled
+          remove:
+            - X-Code-Code-Debug-Remove

@@ -2,11 +2,10 @@ package authservice
 
 import (
 	"context"
-	"encoding/json"
+	"log/slog"
 	"strings"
 
 	authv1 "code-code.internal/go-contract/platform/auth/v1"
-	"code-code.internal/platform-k8s/internal/egressauth"
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoyauthv3 "github.com/envoyproxy/go-control-plane/envoy/service/auth/v3"
 	typev3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
@@ -43,6 +42,7 @@ func (s *EgressExtAuthzServer) Check(ctx context.Context, request *envoyauthv3.C
 		if code == codes.OK {
 			code = codes.Unknown
 		}
+		s.logDeniedEgressAuth(resolveRequest, code, err)
 		return deniedExtAuthzResponse(code, statusCodeForExtAuthzError(code)), nil
 	}
 	if response.GetSkipped() {
@@ -52,6 +52,26 @@ func (s *EgressExtAuthzServer) Check(ctx context.Context, request *envoyauthv3.C
 		return deniedExtAuthzResponse(codes.PermissionDenied, typev3.StatusCode_Forbidden), nil
 	}
 	return allowedExtAuthzResponse(response.GetHeaders(), response.GetRemoveHeaders()), nil
+}
+
+func (s *EgressExtAuthzServer) logDeniedEgressAuth(request *authv1.ResolveEgressRequestHeadersRequest, code codes.Code, err error) {
+	logger := slog.Default()
+	if s != nil && s.auth != nil && s.auth.logger != nil {
+		logger = s.auth.logger
+	}
+	logger.Warn(
+		"egress auth denied",
+		"code", code.String(),
+		"error", grpcstatus.Convert(err).Message(),
+		"source_principal", strings.TrimSpace(request.GetSourcePrincipal()),
+		"source_ip", strings.TrimSpace(request.GetRuntimeSource().GetPod().GetIp()),
+		"target_host", strings.TrimSpace(request.GetTargetHost()),
+		"target_path", strings.TrimSpace(request.GetTargetPath()),
+		"auth_policy_id", strings.TrimSpace(request.GetAuthPolicyId()),
+		"adapter_id", strings.TrimSpace(request.GetAdapterId()),
+		"allowed_header_names", normalizedHeaderNames(request.GetAllowedHeaderNames()),
+		"simple_replacement_rule_count", len(request.GetSimpleReplacementRules()),
+	)
 }
 
 func extAuthzResolveRequest(request *envoyauthv3.CheckRequest, runtimeNamespace string) (*authv1.ResolveEgressRequestHeadersRequest, bool) {
@@ -69,48 +89,30 @@ func extAuthzResolveRequest(request *envoyauthv3.CheckRequest, runtimeNamespace 
 	if strings.TrimSpace(targetHost) == "" || strings.TrimSpace(targetPath) == "" {
 		return nil, false
 	}
-	if request, ok := extAuthzProviderSurfaceResolveRequest(attributes.GetSource(), headers, targetHost, targetPath); ok {
-		return request, true
-	}
-	source := extAuthzRuntimeSource(attributes.GetSource(), runtimeNamespace)
-	if source == nil {
+	sourcePrincipal := strings.TrimSpace(attributes.GetSource().GetPrincipal())
+	if sourcePrincipal == "" && extAuthzPeerIP(attributes.GetSource()) == "" {
 		return nil, false
 	}
+	source := extAuthzRuntimeSourceForRequest(attributes.GetSource(), runtimeNamespace)
 	return &authv1.ResolveEgressRequestHeadersRequest{
 		TargetHost:      targetHost,
 		TargetPath:      targetPath,
-		SourcePrincipal: strings.TrimSpace(attributes.GetSource().GetPrincipal()),
+		TargetMethod:    strings.TrimSpace(http.GetMethod()),
+		SourcePrincipal: sourcePrincipal,
 		RequestHeaders:  headers,
 		RuntimeSource:   source,
 	}, true
 }
 
-func extAuthzProviderSurfaceResolveRequest(
-	peer *envoyauthv3.AttributeContext_Peer,
-	headers map[string]string,
-	targetHost string,
-	targetPath string,
-) (*authv1.ResolveEgressRequestHeadersRequest, bool) {
-	providerSurfaceBindingID := extAuthzHeaderValue(headers, egressauth.HeaderProviderSurfaceBindingID)
-	if providerSurfaceBindingID == "" {
-		return nil, false
+func extAuthzRuntimeSourceForRequest(peer *envoyauthv3.AttributeContext_Peer, runtimeNamespace string) *authv1.EgressRequestSource {
+	principal := strings.TrimSpace(peer.GetPrincipal())
+	if principal == "" {
+		return extAuthzPeerPodSource(peer)
 	}
-	allowedHeaderNames := extAuthzHeaderList(headers, egressauth.HeaderRequestHeaderNames)
-	rules := extAuthzSimpleReplacementRules(extAuthzHeaderValue(headers, egressauth.HeaderRequestHeaderRulesJSON))
-	return &authv1.ResolveEgressRequestHeadersRequest{
-		PolicyId:                 firstNonEmptyString(extAuthzHeaderValue(headers, egressauth.HeaderAuthPolicyID), extAuthzHeaderValue(headers, egressauth.HeaderEgressPolicyID)),
-		AdapterId:                extAuthzHeaderValue(headers, egressauth.HeaderAuthAdapterID),
-		TargetHost:               targetHost,
-		TargetPath:               targetPath,
-		HeaderValuePrefix:        extAuthzHeaderValue(headers, egressauth.HeaderHeaderValuePrefix),
-		RequestHeaders:           headers,
-		SimpleReplacementRules:   egressSimpleRulesToProto(rules),
-		AllowedHeaderNames:       allowedHeaderNames,
-		SourcePrincipal:          strings.TrimSpace(peer.GetPrincipal()),
-		ProviderSurfaceBindingId: providerSurfaceBindingID,
-		EgressPolicyId:           extAuthzHeaderValue(headers, egressauth.HeaderEgressPolicyID),
-		AuthPolicyId:             extAuthzHeaderValue(headers, egressauth.HeaderAuthPolicyID),
-	}, true
+	if runtimeNamespace = strings.TrimSpace(runtimeNamespace); runtimeNamespace == "" {
+		return nil
+	}
+	return extAuthzRuntimeSource(peer, runtimeNamespace)
 }
 
 func extAuthzHeaderValue(headers map[string]string, name string) string {
@@ -118,34 +120,6 @@ func extAuthzHeaderValue(headers map[string]string, name string) string {
 		return ""
 	}
 	return strings.TrimSpace(headers[normalizeHTTPHeaderName(name)])
-}
-
-func extAuthzHeaderList(headers map[string]string, name string) []string {
-	raw := extAuthzHeaderValue(headers, name)
-	if raw == "" {
-		return nil
-	}
-	parts := strings.Split(raw, ",")
-	out := make([]string, 0, len(parts))
-	for _, part := range parts {
-		part = normalizeHTTPHeaderName(part)
-		if part != "" {
-			out = append(out, part)
-		}
-	}
-	return normalizedHeaderNames(out)
-}
-
-func extAuthzSimpleReplacementRules(raw string) []egressauth.SimpleReplacementRule {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
-		return nil
-	}
-	var rules []egressauth.SimpleReplacementRule
-	if err := json.Unmarshal([]byte(raw), &rules); err != nil {
-		return nil
-	}
-	return rules
 }
 
 func extAuthzRuntimeSource(peer *envoyauthv3.AttributeContext_Peer, runtimeNamespace string) *authv1.EgressRequestSource {
@@ -157,6 +131,18 @@ func extAuthzRuntimeSource(peer *envoyauthv3.AttributeContext_Peer, runtimeNames
 	if runtimeNamespace = strings.TrimSpace(runtimeNamespace); runtimeNamespace != "" && namespace != runtimeNamespace {
 		return nil
 	}
+	return &authv1.EgressRequestSource{Source: &authv1.EgressRequestSource_Pod{Pod: &authv1.EgressPodSource{
+		Namespace: namespace,
+		Ip:        ip,
+	}}}
+}
+
+func extAuthzPeerPodSource(peer *envoyauthv3.AttributeContext_Peer) *authv1.EgressRequestSource {
+	ip := extAuthzPeerIP(peer)
+	if ip == "" {
+		return nil
+	}
+	namespace := extAuthzPeerNamespace(peer.GetPrincipal())
 	return &authv1.EgressRequestSource{Source: &authv1.EgressRequestSource_Pod{Pod: &authv1.EgressPodSource{
 		Namespace: namespace,
 		Ip:        ip,

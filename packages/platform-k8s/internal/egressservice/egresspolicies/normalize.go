@@ -3,7 +3,6 @@ package egresspolicies
 import (
 	"fmt"
 	"net/netip"
-	"net/textproto"
 	"slices"
 	"strings"
 
@@ -65,17 +64,22 @@ func normalizeAccessSet(accessSet *egressv1.ExternalAccessSet, fallbackPolicyID 
 	if err != nil {
 		return nil, fmt.Errorf("external access set %q: %w", normalized.GetAccessSetId(), err)
 	}
+	proxyEndpoints, err := normalizeProxyEndpoints(normalized.GetProxyEndpoints())
+	if err != nil {
+		return nil, fmt.Errorf("external access set %q: %w", normalized.GetAccessSetId(), err)
+	}
 	serviceRules, err := normalizeServiceRules(normalized.GetServiceRules())
 	if err != nil {
 		return nil, fmt.Errorf("external access set %q: %w", normalized.GetAccessSetId(), err)
 	}
-	httpRoutes, err := normalizeHTTPRoutes(normalized.GetHttpRoutes())
+	httpInspectionRules, err := normalizeHTTPInspectionRules(normalized.GetHttpInspectionRules())
 	if err != nil {
 		return nil, fmt.Errorf("external access set %q: %w", normalized.GetAccessSetId(), err)
 	}
 	normalized.ExternalRules = externalRules
+	normalized.ProxyEndpoints = proxyEndpoints
 	normalized.ServiceRules = serviceRules
-	normalized.HttpRoutes = httpRoutes
+	normalized.HttpInspectionRules = httpInspectionRules
 	return normalized, nil
 }
 
@@ -123,10 +127,73 @@ func normalizeExternalRules(rules []*egressv1.ExternalRule) ([]*egressv1.Externa
 				return nil, fmt.Errorf("external rule %q address_cidr is invalid: %w", normalized.GetExternalRuleId(), err)
 			}
 		}
+		egressPath, err := normalizeEgressPath(normalized.GetEgressPath())
+		if err != nil {
+			return nil, fmt.Errorf("external rule %q egress path: %w", normalized.GetExternalRuleId(), err)
+		}
+		if egressPath != nil && normalized.GetProtocol() != egressv1.EgressProtocol_EGRESS_PROTOCOL_TLS {
+			return nil, fmt.Errorf("external rule %q egress path is only supported for TLS passthrough destinations", normalized.GetExternalRuleId())
+		}
+		normalized.EgressPath = egressPath
 		out = append(out, normalized)
 	}
 	slices.SortFunc(out, func(a, b *egressv1.ExternalRule) int {
 		return strings.Compare(a.GetExternalRuleId(), b.GetExternalRuleId())
+	})
+	return out, nil
+}
+
+func normalizeProxyEndpoints(endpoints []*egressv1.ProxyEndpoint) ([]*egressv1.ProxyEndpoint, error) {
+	seen := map[string]struct{}{}
+	out := make([]*egressv1.ProxyEndpoint, 0, len(endpoints))
+	for _, endpoint := range endpoints {
+		if endpoint == nil {
+			continue
+		}
+		normalized := proto.Clone(endpoint).(*egressv1.ProxyEndpoint)
+		normalized.ProxyEndpointId = strings.TrimSpace(normalized.GetProxyEndpointId())
+		if normalized.ProxyEndpointId == "" {
+			return nil, fmt.Errorf("proxy endpoint id is empty")
+		}
+		if _, ok := seen[normalized.GetProxyEndpointId()]; ok {
+			return nil, fmt.Errorf("duplicate proxy endpoint %q", normalized.GetProxyEndpointId())
+		}
+		seen[normalized.GetProxyEndpointId()] = struct{}{}
+		normalized.DisplayName = displayNameOr(normalized.GetDisplayName(), normalized.GetProxyEndpointId())
+		hostMatch, err := normalizeHostMatch(normalized.GetHostMatch())
+		if err != nil {
+			return nil, fmt.Errorf("proxy endpoint %q: %w", normalized.GetProxyEndpointId(), err)
+		}
+		if hostMatch.GetHostWildcard() != "" {
+			return nil, fmt.Errorf("proxy endpoint %q host_wildcard is not supported", normalized.GetProxyEndpointId())
+		}
+		normalized.HostMatch = hostMatch
+		if normalized.GetPort() <= 0 || normalized.GetPort() > 65535 {
+			return nil, fmt.Errorf("proxy endpoint %q port must be between 1 and 65535", normalized.GetProxyEndpointId())
+		}
+		switch normalized.GetProtocol() {
+		case egressv1.ProxyProtocol_PROXY_PROTOCOL_HTTP_CONNECT, egressv1.ProxyProtocol_PROXY_PROTOCOL_SOCKS5:
+		default:
+			return nil, fmt.Errorf("proxy endpoint %q protocol is unspecified or unsupported", normalized.GetProxyEndpointId())
+		}
+		if normalized.GetResolution() == egressv1.EgressResolution_EGRESS_RESOLUTION_UNSPECIFIED {
+			return nil, fmt.Errorf("proxy endpoint %q resolution is unspecified", normalized.GetProxyEndpointId())
+		}
+		normalized.AddressCidr = strings.TrimSpace(normalized.GetAddressCidr())
+		if normalized.GetAddressCidr() == "" {
+			return nil, fmt.Errorf("proxy endpoint %q address_cidr is required for generated forwarder NetworkPolicy", normalized.GetProxyEndpointId())
+		}
+		prefix, err := netip.ParsePrefix(normalized.GetAddressCidr())
+		if err != nil {
+			return nil, fmt.Errorf("proxy endpoint %q address_cidr is invalid: %w", normalized.GetProxyEndpointId(), err)
+		}
+		if !prefix.IsSingleIP() {
+			return nil, fmt.Errorf("proxy endpoint %q address_cidr must identify a single IP", normalized.GetProxyEndpointId())
+		}
+		out = append(out, normalized)
+	}
+	slices.SortFunc(out, func(a, b *egressv1.ProxyEndpoint) int {
+		return strings.Compare(a.GetProxyEndpointId(), b.GetProxyEndpointId())
 	})
 	return out, nil
 }
@@ -165,212 +232,6 @@ func normalizeServiceRules(rules []*egressv1.ServiceRule) ([]*egressv1.ServiceRu
 		return strings.Compare(a.GetServiceRuleId(), b.GetServiceRuleId())
 	})
 	return out, nil
-}
-
-func normalizeHTTPRoutes(routes []*egressv1.HttpEgressRoute) ([]*egressv1.HttpEgressRoute, error) {
-	seen := map[string]struct{}{}
-	out := make([]*egressv1.HttpEgressRoute, 0, len(routes))
-	for _, route := range routes {
-		if route == nil {
-			continue
-		}
-		normalized := proto.Clone(route).(*egressv1.HttpEgressRoute)
-		normalized.RouteId = strings.TrimSpace(normalized.GetRouteId())
-		if normalized.RouteId == "" {
-			return nil, fmt.Errorf("http route id is empty")
-		}
-		if _, ok := seen[normalized.GetRouteId()]; ok {
-			return nil, fmt.Errorf("duplicate http route %q", normalized.GetRouteId())
-		}
-		seen[normalized.GetRouteId()] = struct{}{}
-		normalized.DisplayName = displayNameOr(normalized.GetDisplayName(), normalized.GetRouteId())
-		normalized.DestinationId = strings.TrimSpace(normalized.GetDestinationId())
-		if normalized.DestinationId == "" {
-			return nil, fmt.Errorf("http route %q destination id is empty", normalized.GetRouteId())
-		}
-		matches, err := normalizeHTTPRouteMatches(normalized.GetMatches())
-		if err != nil {
-			return nil, fmt.Errorf("http route %q: %w", normalized.GetRouteId(), err)
-		}
-		requestHeaders, err := normalizeHeaderPolicy(normalized.GetRequestHeaders())
-		if err != nil {
-			return nil, fmt.Errorf("http route %q request headers: %w", normalized.GetRouteId(), err)
-		}
-		responseHeaders, err := normalizeHeaderPolicy(normalized.GetResponseHeaders())
-		if err != nil {
-			return nil, fmt.Errorf("http route %q response headers: %w", normalized.GetRouteId(), err)
-		}
-		normalized.Matches = matches
-		normalized.RequestHeaders = requestHeaders
-		normalized.ResponseHeaders = responseHeaders
-		normalized.AuthPolicyId = strings.TrimSpace(normalized.GetAuthPolicyId())
-		out = append(out, normalized)
-	}
-	slices.SortFunc(out, func(a, b *egressv1.HttpEgressRoute) int {
-		return strings.Compare(a.GetRouteId(), b.GetRouteId())
-	})
-	return out, nil
-}
-
-func normalizeHTTPRouteMatches(matches []*egressv1.HttpRouteMatch) ([]*egressv1.HttpRouteMatch, error) {
-	out := make([]*egressv1.HttpRouteMatch, 0, len(matches))
-	for _, match := range matches {
-		if match == nil {
-			continue
-		}
-		normalized := proto.Clone(match).(*egressv1.HttpRouteMatch)
-		pathPrefixes, err := normalizePathPrefixes(normalized.GetPathPrefixes())
-		if err != nil {
-			return nil, err
-		}
-		methods, err := normalizeHTTPMethods(normalized.GetMethods())
-		if err != nil {
-			return nil, err
-		}
-		if len(pathPrefixes) == 0 && len(methods) == 0 {
-			continue
-		}
-		normalized.PathPrefixes = pathPrefixes
-		normalized.Methods = methods
-		out = append(out, normalized)
-	}
-	return out, nil
-}
-
-func normalizePathPrefixes(values []string) ([]string, error) {
-	seen := map[string]struct{}{}
-	out := make([]string, 0, len(values))
-	for _, value := range values {
-		value = strings.TrimSpace(value)
-		if value == "" {
-			continue
-		}
-		if !strings.HasPrefix(value, "/") {
-			return nil, fmt.Errorf("path prefix %q must start with /", value)
-		}
-		if _, ok := seen[value]; ok {
-			continue
-		}
-		seen[value] = struct{}{}
-		out = append(out, value)
-	}
-	slices.Sort(out)
-	return out, nil
-}
-
-func normalizeHTTPMethods(values []string) ([]string, error) {
-	seen := map[string]struct{}{}
-	out := make([]string, 0, len(values))
-	for _, value := range values {
-		value = strings.ToUpper(strings.TrimSpace(value))
-		if value == "" {
-			continue
-		}
-		if errs := validation.IsHTTPHeaderName(value); len(errs) > 0 {
-			return nil, fmt.Errorf("method %q is invalid: %s", value, strings.Join(errs, "; "))
-		}
-		if _, ok := seen[value]; ok {
-			continue
-		}
-		seen[value] = struct{}{}
-		out = append(out, value)
-	}
-	slices.Sort(out)
-	return out, nil
-}
-
-func normalizeHeaderPolicy(policy *egressv1.HttpHeaderPolicy) (*egressv1.HttpHeaderPolicy, error) {
-	if policy == nil {
-		return nil, nil
-	}
-	add, err := normalizeHeaderValues(policy.GetAdd(), false)
-	if err != nil {
-		return nil, err
-	}
-	set, err := normalizeHeaderValues(policy.GetSet(), true)
-	if err != nil {
-		return nil, err
-	}
-	remove, err := normalizeHeaderNames(policy.GetRemove())
-	if err != nil {
-		return nil, err
-	}
-	if len(add) == 0 && len(set) == 0 && len(remove) == 0 {
-		return nil, nil
-	}
-	return &egressv1.HttpHeaderPolicy{Add: add, Set: set, Remove: remove}, nil
-}
-
-func normalizeHeaderValues(values []*egressv1.HttpHeaderValue, uniqueName bool) ([]*egressv1.HttpHeaderValue, error) {
-	seenNames := map[string]struct{}{}
-	seenValues := map[string]struct{}{}
-	out := make([]*egressv1.HttpHeaderValue, 0, len(values))
-	for _, value := range values {
-		if value == nil {
-			continue
-		}
-		name, err := normalizeHeaderName(value.GetName())
-		if err != nil {
-			return nil, err
-		}
-		if name == "" {
-			continue
-		}
-		if uniqueName {
-			if _, ok := seenNames[strings.ToLower(name)]; ok {
-				return nil, fmt.Errorf("duplicate header %q", name)
-			}
-			seenNames[strings.ToLower(name)] = struct{}{}
-		}
-		key := strings.ToLower(name) + "\x00" + value.GetValue()
-		if _, ok := seenValues[key]; ok {
-			continue
-		}
-		seenValues[key] = struct{}{}
-		out = append(out, &egressv1.HttpHeaderValue{Name: name, Value: value.GetValue()})
-	}
-	slices.SortFunc(out, func(a, b *egressv1.HttpHeaderValue) int {
-		if a.GetName() != b.GetName() {
-			return strings.Compare(strings.ToLower(a.GetName()), strings.ToLower(b.GetName()))
-		}
-		return strings.Compare(a.GetValue(), b.GetValue())
-	})
-	return out, nil
-}
-
-func normalizeHeaderNames(values []string) ([]string, error) {
-	seen := map[string]struct{}{}
-	out := make([]string, 0, len(values))
-	for _, value := range values {
-		name, err := normalizeHeaderName(value)
-		if err != nil {
-			return nil, err
-		}
-		if name == "" {
-			continue
-		}
-		key := strings.ToLower(name)
-		if _, ok := seen[key]; ok {
-			continue
-		}
-		seen[key] = struct{}{}
-		out = append(out, name)
-	}
-	slices.SortFunc(out, func(a, b string) int {
-		return strings.Compare(strings.ToLower(a), strings.ToLower(b))
-	})
-	return out, nil
-}
-
-func normalizeHeaderName(value string) (string, error) {
-	value = strings.TrimSpace(value)
-	if value == "" {
-		return "", nil
-	}
-	if errs := validation.IsHTTPHeaderName(value); len(errs) > 0 {
-		return "", fmt.Errorf("header %q is invalid: %s", value, strings.Join(errs, "; "))
-	}
-	return textproto.CanonicalMIMEHeaderKey(value), nil
 }
 
 func normalizeHostMatch(match *egressv1.HostMatch) (*egressv1.HostMatch, error) {

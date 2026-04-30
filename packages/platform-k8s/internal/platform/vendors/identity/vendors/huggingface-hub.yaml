@@ -1,0 +1,6 @@
+---
+description: Inference Providers and routed model APIs from Hugging Face.
+displayName: Hugging Face
+iconUrl: https://huggingface.co/favicon.ico
+vendorId: huggingface-hub
+websiteUrl: https://huggingface.co/inference-api

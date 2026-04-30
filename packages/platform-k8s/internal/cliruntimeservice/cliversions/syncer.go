@@ -11,7 +11,7 @@ import (
 
 	supportv1 "code-code.internal/go-contract/platform/support/v1"
 	"code-code.internal/platform-k8s/internal/platform/outboundhttp"
-	clisupport "code-code.internal/platform-k8s/internal/supportservice/clidefinitions/support"
+	clisupport "code-code.internal/platform-k8s/internal/platform/clidefinitions/support"
 )
 
 type Syncer struct {

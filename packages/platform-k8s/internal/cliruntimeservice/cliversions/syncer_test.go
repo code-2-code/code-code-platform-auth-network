@@ -16,7 +16,7 @@ func TestSyncerSyncAllPersistsFetchedVersions(t *testing.T) {
 		case "/-/package/@openai/codex/dist-tags":
 			_, _ = w.Write([]byte(`{"latest":"0.121.0"}`))
 		case "/-/package/@anthropic-ai/claude-code/dist-tags":
-			_, _ = w.Write([]byte(`{"latest":"2.0.0"}`))
+			_, _ = w.Write([]byte(`{"next":"2.0.0"}`))
 		case "/-/package/@google/gemini-cli/dist-tags":
 			_, _ = w.Write([]byte(`{"latest":"0.9.0"}`))
 		case "/antigravity.json":
@@ -108,7 +108,7 @@ func TestSyncerSyncReadsCLISupportAndStateFromStore(t *testing.T) {
 		case "/-/package/@openai/codex/dist-tags":
 			_, _ = w.Write([]byte(`{"latest":"0.121.0"}`))
 		case "/-/package/@anthropic-ai/claude-code/dist-tags":
-			_, _ = w.Write([]byte(`{"latest":"2.0.0"}`))
+			_, _ = w.Write([]byte(`{"next":"2.0.0"}`))
 		case "/-/package/@google/gemini-cli/dist-tags":
 			_, _ = w.Write([]byte(`{"latest":"0.9.0"}`))
 		case "/antigravity.json":
@@ -171,7 +171,7 @@ func TestSyncerSyncPreservesSnapshotWhenVersionDoesNotChange(t *testing.T) {
 		case "/-/package/@openai/codex/dist-tags":
 			_, _ = w.Write([]byte(`{"latest":"0.120.0"}`))
 		case "/-/package/@anthropic-ai/claude-code/dist-tags":
-			_, _ = w.Write([]byte(`{"latest":"2.0.0"}`))
+			_, _ = w.Write([]byte(`{"next":"2.0.0"}`))
 		case "/-/package/@google/gemini-cli/dist-tags":
 			_, _ = w.Write([]byte(`{"latest":"0.9.0"}`))
 		case "/antigravity.json":

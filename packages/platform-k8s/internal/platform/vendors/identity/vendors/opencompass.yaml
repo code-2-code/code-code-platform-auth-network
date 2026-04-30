@@ -1,0 +1,8 @@
+---
+aliases:
+- open-compass
+description: OpenCompass model publisher.
+displayName: OpenCompass
+iconUrl: https://opencompass.org.cn/favicon.ico
+vendorId: opencompass
+websiteUrl: https://opencompass.org.cn/

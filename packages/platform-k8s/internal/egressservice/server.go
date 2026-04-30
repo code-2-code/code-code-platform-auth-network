@@ -19,6 +19,7 @@ type Config struct {
 	Namespace                      string
 	EgressNamespace                string
 	DynamicHeaderAuthzProviderName string
+	ForwarderImage                 string
 	RuntimeTelemetry               runtimeobservability.Config
 }
 
@@ -46,6 +47,7 @@ func NewServer(config Config) (*Server, error) {
 		EgressRuntime: egresspolicies.EgressRuntimeConfig{
 			Namespace:                      config.EgressNamespace,
 			DynamicHeaderAuthzProviderName: config.DynamicHeaderAuthzProviderName,
+			ForwarderImage:                 config.ForwarderImage,
 		},
 	})
 	if err != nil {
@@ -97,11 +99,15 @@ func (s *Server) ApplyExternalAccessSet(ctx context.Context, request *egressserv
 		return nil, err
 	}
 	return &egressservicev1.ApplyExternalAccessSetResponse{
-		Item:                       result.Item,
-		AddedExternalRuleCount:     result.Added,
-		UpdatedExternalRuleCount:   result.Updated,
-		RemovedExternalRuleCount:   result.Removed,
-		UnchangedExternalRuleCount: result.Unchanged,
+		Item:                        result.Item,
+		AddedExternalRuleCount:      result.AddedExternalRule,
+		UpdatedExternalRuleCount:    result.UpdatedExternalRule,
+		RemovedExternalRuleCount:    result.RemovedExternalRule,
+		UnchangedExternalRuleCount:  result.UnchangedExternalRule,
+		AddedProxyEndpointCount:     result.AddedProxyEndpoint,
+		UpdatedProxyEndpointCount:   result.UpdatedProxyEndpoint,
+		RemovedProxyEndpointCount:   result.RemovedProxyEndpoint,
+		UnchangedProxyEndpointCount: result.UnchangedProxyEndpoint,
 	}, nil
 }
 
@@ -111,10 +117,11 @@ func (s *Server) DeleteExternalAccessSet(ctx context.Context, request *egressser
 		return nil, err
 	}
 	return &egressservicev1.DeleteExternalAccessSetResponse{
-		Item:                     result.Item,
-		RemovedExternalRuleCount: result.RemovedExternalRule,
-		RemovedServiceRuleCount:  result.RemovedServiceRule,
-		RemovedHttpRouteCount:    result.RemovedHTTPRoute,
+		Item:                           result.Item,
+		RemovedExternalRuleCount:       result.RemovedExternalRule,
+		RemovedServiceRuleCount:        result.RemovedServiceRule,
+		RemovedHttpInspectionRuleCount: result.RemovedHTTPInspectionRule,
+		RemovedProxyEndpointCount:      result.RemovedProxyEndpoint,
 	}, nil
 }
 

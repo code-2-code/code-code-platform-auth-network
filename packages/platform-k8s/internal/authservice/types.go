@@ -12,7 +12,6 @@ import (
 	"code-code.internal/platform-k8s/internal/authservice/oauth"
 	"code-code.internal/platform-k8s/internal/egressauthpolicy"
 	"code-code.internal/platform-k8s/internal/platform/domainevents"
-	"code-code.internal/platform-k8s/internal/providerservice/providers"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -29,6 +28,7 @@ type Config struct {
 	CredentialMaterial    credentials.CredentialMaterialStore
 	CredentialEncryptor   credentials.CredentialMaterialEncryptor
 	MaterialReadPolicy    CredentialMaterialReadAuthorizer
+	SessionInputForms     SessionInputFormResolver
 	OAuthSessionStore     oauth.AuthorizationSessionResourceStore
 	HostedCallbackBaseURL string
 	AgentSessionConn      grpc.ClientConnInterface
@@ -45,15 +45,16 @@ type Server struct {
 	credentialStore       credentials.ResourceStore
 	credentialMaterial    credentials.CredentialMaterialStore
 	materialReadPolicy    CredentialMaterialReadAuthorizer
+	sessionInputForms     SessionInputFormResolver
 	credentialWriter      *credentials.CredentialManagementService
 	credentialResolver    egressCredentialResolver
 	credentialRefChecker  credentials.CredentialReferenceChecker
-	providers             providers.Store
 	oauthImporter         credentialcontract.OAuthCredentialImporter
 	refreshRunner         *credentials.RefreshRunner
 	oauthSessions         *OAuthSessionServer
 	agentSessions         egressRuntimeContextClient
 	headerRewritePolicies *egressauthpolicy.Catalog
+	logger                *slog.Logger
 }
 
 type egressRuntimeContextClient interface {

@@ -1,0 +1,11 @@
+---
+providerBindings:
+- providerBinding:
+    surfaceId: openai-compatible
+  surfaceTemplates:
+  - runtime:
+      api:
+        baseUrl: https://qianfan.baidubce.com/v2
+        protocol: PROTOCOL_OPENAI_COMPATIBLE
+      displayName: Baidu Qianfan OpenAI Compatible
+    surfaceId: openai-compatible

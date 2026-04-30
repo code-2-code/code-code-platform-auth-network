@@ -51,3 +51,32 @@ policies:
             headerName: authorization
             materialKey: access_token
             headerValuePrefix: Bearer
+  - policyId: vendor.google-aistudio-session
+    adapterId: google-aistudio-session
+    extensionProviderName: code-code-egress-auth-session
+    materializations:
+      - materializationKey: vendor.google-aistudio-session
+        requestReplacementRules:
+          - headerName: authorization
+          - headerName: cookie
+          - headerName: x-goog-api-key
+  - policyId: vendor.bearer-session
+    adapterId: bearer-session
+    extensionProviderName: code-code-egress-auth-bearer
+    materializations:
+      - materializationKey: vendor.bearer-session
+        requestReplacementRules:
+          - mode: bearer
+            headerName: authorization
+            materialKey: access_token
+            headerValuePrefix: Bearer
+  - policyId: vendor.authjs-session-cookie
+    adapterId: session-cookie
+    extensionProviderName: code-code-egress-auth-session
+    materializations:
+      - materializationKey: vendor.authjs-session-cookie
+        requestReplacementRules:
+          - mode: cookie
+            headerName: cookie
+            template: authjs.session-token=PLACEHOLDER
+            materialKey: authjs_session_token

@@ -8,7 +8,7 @@ import (
 	credentialv1 "code-code.internal/go-contract/credential/v1"
 	authv1 "code-code.internal/go-contract/platform/auth/v1"
 	managementv1 "code-code.internal/go-contract/platform/management/v1"
-	clioauth "code-code.internal/platform-k8s/internal/supportservice/clidefinitions/oauth"
+	clioauth "code-code.internal/platform-k8s/internal/platform/clidefinitions/oauth"
 )
 
 func (s *Server) GetCredentialSubjectSummary(ctx context.Context, request *authv1.GetCredentialSubjectSummaryRequest) (*authv1.GetCredentialSubjectSummaryResponse, error) {

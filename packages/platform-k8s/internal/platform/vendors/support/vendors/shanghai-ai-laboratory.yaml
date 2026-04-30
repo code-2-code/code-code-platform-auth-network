@@ -1,0 +1,240 @@
+---
+providerBindings:
+- modelDiscovery:
+    activeDiscovery:
+      operation:
+        path: models
+        responseKind: MODEL_CATALOG_DISCOVERY_RESPONSE_KIND_OPENAI_MODELS
+      surfaceIds:
+      - openai-compatible
+    authorityPriority: 650
+    collectorId: shanghai-ai-laboratory-models
+  observability:
+    profiles:
+    - activeQuery:
+        collectorId: internlm-quotas
+        inputForm:
+          actionLabel: Update Session Token
+          description: Paste the session token used by the InternLM quota query.
+          fields:
+          - control: ACTIVE_QUERY_INPUT_CONTROL_PASSWORD
+            fieldId: access_token
+            label: Session token
+            persistence: ACTIVE_QUERY_INPUT_PERSISTENCE_STORED_MATERIAL
+            placeholder: Paste InternLM session token
+            required: true
+            sensitive: true
+          schemaId: internlm-session
+          title: Update InternLM Session Token
+        minimumPollInterval: 300s
+      displayName: InternLM Daily Quota
+      metricQueries:
+      - displayName: InternLM Quota Usage Percent
+        language: METRIC_QUERY_LANGUAGE_PROMQL
+        metricNames:
+        - gen_ai.provider.quota.usage.fraction.percent
+        queryId: internlm_quota_usage_fraction_percent
+        resultKind: METRIC_QUERY_RESULT_KIND_VECTOR
+        statement: max by (owner_kind, owner_id, vendor_id, access_target_id, provider_id,
+          model_id, org_id, org_name, region_id, window, resource, tier, preview,
+          quota_type, token_type) (gen_ai_provider_quota_usage_fraction_percent{vendor_id="shanghai-ai-laboratory"})
+      - displayName: InternLM Quota Remaining
+        language: METRIC_QUERY_LANGUAGE_PROMQL
+        metricNames:
+        - gen_ai.provider.quota.remaining
+        queryId: internlm_quota_remaining
+        resultKind: METRIC_QUERY_RESULT_KIND_VECTOR
+        statement: max by (owner_kind, owner_id, vendor_id, access_target_id, provider_id,
+          model_id, org_id, org_name, region_id, window, resource, tier, preview,
+          quota_type, token_type) (gen_ai_provider_quota_remaining{vendor_id="shanghai-ai-laboratory"})
+      metrics:
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable access target identifier.
+          name: access_target_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Provider model identifier.
+          name: model_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization identifier.
+          name: org_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization name.
+          name: org_name
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider region identifier.
+          name: region_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limited resource type (requests, tokens, etc).
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limit time window (minute, hour, day).
+          name: window
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider project or account tier.
+          name: tier
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Whether the model catalog entry exposes preview aliases.
+          name: preview
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Quota dimension key (RPM, TPM, etc).
+          name: quota_type
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Token direction (input or output).
+          name: token_type
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        category: OBSERVABILITY_METRIC_CATEGORY_QUOTA
+        description: InternLM daily token quota limit.
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.quota.limit
+        unit: '{token}'
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable access target identifier.
+          name: access_target_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Provider model identifier.
+          name: model_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization identifier.
+          name: org_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization name.
+          name: org_name
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider region identifier.
+          name: region_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limited resource type (requests, tokens, etc).
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limit time window (minute, hour, day).
+          name: window
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider project or account tier.
+          name: tier
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Whether the model catalog entry exposes preview aliases.
+          name: preview
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Quota dimension key (RPM, TPM, etc).
+          name: quota_type
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Token direction (input or output).
+          name: token_type
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        category: OBSERVABILITY_METRIC_CATEGORY_USAGE
+        description: InternLM daily token usage.
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.quota.usage
+        unit: '{token}'
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable access target identifier.
+          name: access_target_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Provider model identifier.
+          name: model_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization identifier.
+          name: org_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization name.
+          name: org_name
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider region identifier.
+          name: region_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limited resource type (requests, tokens, etc).
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limit time window (minute, hour, day).
+          name: window
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider project or account tier.
+          name: tier
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Whether the model catalog entry exposes preview aliases.
+          name: preview
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Quota dimension key (RPM, TPM, etc).
+          name: quota_type
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Token direction (input or output).
+          name: token_type
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        category: OBSERVABILITY_METRIC_CATEGORY_QUOTA
+        description: InternLM daily remaining token quota.
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.quota.remaining
+        unit: '{token}'
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable access target identifier.
+          name: access_target_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Provider model identifier.
+          name: model_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization identifier.
+          name: org_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization name.
+          name: org_name
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider region identifier.
+          name: region_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limited resource type (requests, tokens, etc).
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limit time window (minute, hour, day).
+          name: window
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider project or account tier.
+          name: tier
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Whether the model catalog entry exposes preview aliases.
+          name: preview
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Quota dimension key (RPM, TPM, etc).
+          name: quota_type
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Token direction (input or output).
+          name: token_type
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        category: OBSERVABILITY_METRIC_CATEGORY_QUOTA
+        description: InternLM daily token quota usage percentage.
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.quota.usage.fraction.percent
+        unit: '%'
+      profileId: internlm_quota
+  providerBinding:
+    surfaceId: openai-compatible
+  surfaceTemplates:
+  - runtime:
+      api:
+        baseUrl: https://chat.intern-ai.org.cn/api/v1
+        protocol: PROTOCOL_OPENAI_COMPATIBLE
+      displayName: InternLM OpenAI Compatible
+    surfaceId: openai-compatible

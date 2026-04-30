@@ -11,8 +11,9 @@ import (
 )
 
 type desiredState struct {
-	destinations []*externalDestination
-	httpRoutes   []*httpEgressRoute
+	destinations        []*externalDestination
+	proxyEndpoints      []*proxyEndpoint
+	httpInspectionRules []*httpInspectionRule
 }
 
 type externalDestination struct {
@@ -23,14 +24,17 @@ type externalDestination struct {
 	port            int32
 	protocol        egressv1.EgressProtocol
 	resolution      egressv1.EgressResolution
+	proxyEndpointID string
+	proxyEndpoint   *proxyEndpoint
 	ownerServices   []string
 	accessSetIDs    []string
 	serviceAccounts []string
+	serviceEntry    *serviceEntryGroup
 }
 
-type httpEgressRoute struct {
+type httpInspectionRule struct {
 	resourceID         string
-	routeID            string
+	inspectionRuleID   string
 	displayName        string
 	destination        *externalDestination
 	matches            []*httpRouteMatch
@@ -41,6 +45,18 @@ type httpEgressRoute struct {
 	dynamicHeaderAuthz bool
 	ownerServices      []string
 	accessSetIDs       []string
+}
+
+type proxyEndpoint struct {
+	proxyEndpointID string
+	displayName     string
+	host            string
+	addressCidr     string
+	port            int32
+	protocol        egressv1.ProxyProtocol
+	resolution      egressv1.EgressResolution
+	ownerServices   []string
+	accessSetIDs    []string
 }
 
 type httpRouteMatch struct {
@@ -61,6 +77,7 @@ type headerValue struct {
 
 func desiredStateFromPolicy(policy *egressv1.EgressPolicy) (desiredState, error) {
 	destinations := map[string]*externalDestination{}
+	proxyEndpoints := map[string]*proxyEndpoint{}
 	for _, accessSet := range policy.GetAccessSets() {
 		for _, rule := range accessSet.GetExternalRules() {
 			destination, err := destinationFromRule(accessSet, rule)
@@ -78,6 +95,25 @@ func desiredStateFromPolicy(policy *egressv1.EgressPolicy) (desiredState, error)
 			existing.ownerServices = mergeValues(existing.ownerServices, destination.ownerServices)
 			existing.accessSetIDs = mergeValues(existing.accessSetIDs, destination.accessSetIDs)
 		}
+		for _, endpoint := range accessSet.GetProxyEndpoints() {
+			proxy, err := proxyEndpointFromProto(accessSet, endpoint)
+			if err != nil {
+				return desiredState{}, err
+			}
+			existing, ok := proxyEndpoints[proxy.proxyEndpointID]
+			if !ok {
+				proxyEndpoints[proxy.proxyEndpointID] = proxy
+				continue
+			}
+			if !sameProxyEndpoint(existing, proxy) {
+				return desiredState{}, fmt.Errorf("proxy endpoint %q has conflicting declarations", proxy.proxyEndpointID)
+			}
+			existing.ownerServices = mergeValues(existing.ownerServices, proxy.ownerServices)
+			existing.accessSetIDs = mergeValues(existing.accessSetIDs, proxy.accessSetIDs)
+		}
+	}
+	if err := resolveDestinationProxyEndpoints(destinations, proxyEndpoints); err != nil {
+		return desiredState{}, err
 	}
 	for _, accessSet := range policy.GetAccessSets() {
 		for _, rule := range accessSet.GetServiceRules() {
@@ -88,27 +124,34 @@ func desiredStateFromPolicy(policy *egressv1.EgressPolicy) (desiredState, error)
 			destination.serviceAccounts = mergeValues(destination.serviceAccounts, rule.GetSourceServiceAccounts())
 		}
 	}
-	httpRoutes := make([]*httpEgressRoute, 0)
+	httpInspectionRules := make([]*httpInspectionRule, 0)
 	for _, accessSet := range policy.GetAccessSets() {
-		for _, route := range accessSet.GetHttpRoutes() {
-			httpRoute, err := httpRouteFromRule(accessSet, route, destinations)
+		for _, rule := range accessSet.GetHttpInspectionRules() {
+			inspectionRule, err := httpInspectionRuleFromProto(accessSet, rule, destinations)
 			if err != nil {
 				return desiredState{}, err
 			}
-			httpRoutes = append(httpRoutes, httpRoute)
+			httpInspectionRules = append(httpInspectionRules, inspectionRule)
 		}
 	}
 	out := make([]*externalDestination, 0, len(destinations))
 	for _, destination := range destinations {
 		out = append(out, destination)
 	}
+	proxies := make([]*proxyEndpoint, 0, len(proxyEndpoints))
+	for _, proxy := range proxyEndpoints {
+		proxies = append(proxies, proxy)
+	}
 	slices.SortFunc(out, func(a, b *externalDestination) int {
 		return strings.Compare(a.destinationID, b.destinationID)
 	})
-	slices.SortFunc(httpRoutes, func(a, b *httpEgressRoute) int {
+	slices.SortFunc(proxies, func(a, b *proxyEndpoint) int {
+		return strings.Compare(a.proxyEndpointID, b.proxyEndpointID)
+	})
+	slices.SortFunc(httpInspectionRules, func(a, b *httpInspectionRule) int {
 		return strings.Compare(a.resourceID, b.resourceID)
 	})
-	return desiredState{destinations: out, httpRoutes: httpRoutes}, nil
+	return desiredState{destinations: out, proxyEndpoints: proxies, httpInspectionRules: httpInspectionRules}, nil
 }
 
 func destinationFromRule(accessSet *egressv1.ExternalAccessSet, rule *egressv1.ExternalRule) (*externalDestination, error) {
@@ -119,16 +162,21 @@ func destinationFromRule(accessSet *egressv1.ExternalAccessSet, rule *egressv1.E
 	if host == "" {
 		return nil, fmt.Errorf("external rule %q host is empty", rule.GetExternalRuleId())
 	}
+	proxyEndpointID, err := proxyEndpointIDFromEgressPath(rule.GetEgressPath())
+	if err != nil {
+		return nil, fmt.Errorf("external rule %q egress path: %w", rule.GetExternalRuleId(), err)
+	}
 	return &externalDestination{
-		destinationID: rule.GetDestinationId(),
-		displayName:   displayNameOr(rule.GetDisplayName(), rule.GetDestinationId()),
-		host:          host,
-		addressCidr:   rule.GetAddressCidr(),
-		port:          rule.GetPort(),
-		protocol:      rule.GetProtocol(),
-		resolution:    rule.GetResolution(),
-		ownerServices: valueIfNotEmpty(accessSet.GetOwnerService()),
-		accessSetIDs:  []string{accessSet.GetAccessSetId()},
+		destinationID:   rule.GetDestinationId(),
+		displayName:     displayNameOr(rule.GetDisplayName(), rule.GetDestinationId()),
+		host:            host,
+		addressCidr:     rule.GetAddressCidr(),
+		port:            rule.GetPort(),
+		protocol:        rule.GetProtocol(),
+		resolution:      rule.GetResolution(),
+		proxyEndpointID: proxyEndpointID,
+		ownerServices:   valueIfNotEmpty(accessSet.GetOwnerService()),
+		accessSetIDs:    []string{accessSet.GetAccessSetId()},
 	}, nil
 }
 
@@ -137,42 +185,106 @@ func sameExternalDestination(a, b *externalDestination) bool {
 		a.addressCidr == b.addressCidr &&
 		a.port == b.port &&
 		a.protocol == b.protocol &&
+		a.resolution == b.resolution &&
+		a.proxyEndpointID == b.proxyEndpointID
+}
+
+func resolveDestinationProxyEndpoints(destinations map[string]*externalDestination, proxyEndpoints map[string]*proxyEndpoint) error {
+	for _, destination := range destinations {
+		if destination.proxyEndpointID == "" {
+			continue
+		}
+		if strings.HasPrefix(destination.host, "*.") {
+			return fmt.Errorf("external destination %q uses proxy egress path on wildcard host; managed TLS egress routes require an exact SNI host", destination.destinationID)
+		}
+		if destination.protocol != egressv1.EgressProtocol_EGRESS_PROTOCOL_TLS {
+			return fmt.Errorf("external destination %q uses proxy egress path with %s protocol; destination-level proxy routing currently requires TLS passthrough", destination.destinationID, protocolString(destination.protocol))
+		}
+		proxy, ok := proxyEndpoints[destination.proxyEndpointID]
+		if !ok {
+			return fmt.Errorf("external destination %q references unknown proxy endpoint %q", destination.destinationID, destination.proxyEndpointID)
+		}
+		destination.proxyEndpoint = proxy
+	}
+	return nil
+}
+
+func proxyEndpointFromProto(accessSet *egressv1.ExternalAccessSet, endpoint *egressv1.ProxyEndpoint) (*proxyEndpoint, error) {
+	host := endpoint.GetHostMatch().GetHostExact()
+	if host == "" {
+		host = endpoint.GetHostMatch().GetHostWildcard()
+	}
+	if host == "" {
+		return nil, fmt.Errorf("proxy endpoint %q host is empty", endpoint.GetProxyEndpointId())
+	}
+	return &proxyEndpoint{
+		proxyEndpointID: endpoint.GetProxyEndpointId(),
+		displayName:     displayNameOr(endpoint.GetDisplayName(), endpoint.GetProxyEndpointId()),
+		host:            host,
+		addressCidr:     endpoint.GetAddressCidr(),
+		port:            endpoint.GetPort(),
+		protocol:        endpoint.GetProtocol(),
+		resolution:      endpoint.GetResolution(),
+		ownerServices:   valueIfNotEmpty(accessSet.GetOwnerService()),
+		accessSetIDs:    []string{accessSet.GetAccessSetId()},
+	}, nil
+}
+
+func sameProxyEndpoint(a, b *proxyEndpoint) bool {
+	return a.host == b.host &&
+		a.addressCidr == b.addressCidr &&
+		a.port == b.port &&
+		a.protocol == b.protocol &&
 		a.resolution == b.resolution
 }
 
-func httpRouteFromRule(accessSet *egressv1.ExternalAccessSet, route *egressv1.HttpEgressRoute, destinations map[string]*externalDestination) (*httpEgressRoute, error) {
-	destination, ok := destinations[route.GetDestinationId()]
+func httpInspectionRuleFromProto(accessSet *egressv1.ExternalAccessSet, rule *egressv1.HttpInspectionRule, destinations map[string]*externalDestination) (*httpInspectionRule, error) {
+	destination, ok := destinations[rule.GetDestinationId()]
 	if !ok {
-		return nil, fmt.Errorf("http route %q references unknown destination %q", route.GetRouteId(), route.GetDestinationId())
+		return nil, fmt.Errorf("http inspection rule %q references unknown destination %q", rule.GetInspectionRuleId(), rule.GetDestinationId())
 	}
 	if strings.HasPrefix(destination.host, "*.") {
-		return nil, fmt.Errorf("http route %q references wildcard destination %q; L7 header policy requires an exact host", route.GetRouteId(), destination.destinationID)
+		return nil, fmt.Errorf("http inspection rule %q references wildcard destination %q; L7 header policy requires an exact host", rule.GetInspectionRuleId(), destination.destinationID)
 	}
 	if destination.protocol != egressv1.EgressProtocol_EGRESS_PROTOCOL_HTTPS {
-		return nil, fmt.Errorf("http route %q references %s destination %q; L7 egress requires an HTTPS destination with TLS origination", route.GetRouteId(), protocolString(destination.protocol), destination.destinationID)
+		return nil, fmt.Errorf("http inspection rule %q references %s destination %q; L7 egress requires an HTTPS destination with TLS origination", rule.GetInspectionRuleId(), protocolString(destination.protocol), destination.destinationID)
 	}
-	authPolicyID := strings.TrimSpace(route.GetAuthPolicyId())
-	authProviderName, err := authProviderNameForRoute(authPolicyID, route.GetDynamicHeaderAuthz())
+	authPolicyID := strings.TrimSpace(rule.GetAuthPolicyId())
+	authProviderName, err := authProviderNameForInspectionRule(authPolicyID, rule.GetDynamicHeaderAuthz())
 	if err != nil {
-		return nil, fmt.Errorf("http route %q: %w", route.GetRouteId(), err)
+		return nil, fmt.Errorf("http inspection rule %q: %w", rule.GetInspectionRuleId(), err)
 	}
-	return &httpEgressRoute{
-		resourceID:         accessSet.GetAccessSetId() + "." + route.GetRouteId(),
-		routeID:            route.GetRouteId(),
-		displayName:        displayNameOr(route.GetDisplayName(), route.GetRouteId()),
+	return &httpInspectionRule{
+		resourceID:         accessSet.GetAccessSetId() + "." + rule.GetInspectionRuleId(),
+		inspectionRuleID:   rule.GetInspectionRuleId(),
+		displayName:        displayNameOr(rule.GetDisplayName(), rule.GetInspectionRuleId()),
 		destination:        destination,
-		matches:            httpRouteMatchesFromProto(route.GetMatches()),
-		requestHeaders:     headerPolicyFromProto(route.GetRequestHeaders()),
-		responseHeaders:    headerPolicyFromProto(route.GetResponseHeaders()),
+		matches:            httpRouteMatchesFromProto(rule.GetMatches()),
+		requestHeaders:     headerPolicyFromProto(rule.GetRequestHeaders()),
+		responseHeaders:    headerPolicyFromProto(rule.GetResponseHeaders()),
 		authPolicyID:       authPolicyID,
 		authProviderName:   authProviderName,
-		dynamicHeaderAuthz: route.GetDynamicHeaderAuthz(),
+		dynamicHeaderAuthz: rule.GetDynamicHeaderAuthz(),
 		ownerServices:      valueIfNotEmpty(accessSet.GetOwnerService()),
 		accessSetIDs:       []string{accessSet.GetAccessSetId()},
 	}, nil
 }
 
-func authProviderNameForRoute(authPolicyID string, dynamicHeaderAuthz bool) (string, error) {
+func proxyEndpointIDFromEgressPath(egressPath *egressv1.EgressPath) (string, error) {
+	if egressPath == nil || egressPath.GetMode() == egressv1.EgressPathMode_EGRESS_PATH_MODE_UNSPECIFIED || egressPath.GetMode() == egressv1.EgressPathMode_EGRESS_PATH_MODE_DIRECT {
+		return "", nil
+	}
+	if egressPath.GetMode() != egressv1.EgressPathMode_EGRESS_PATH_MODE_PROXY {
+		return "", fmt.Errorf("egress path mode %s is not supported", egressPath.GetMode().String())
+	}
+	proxyID := strings.TrimSpace(egressPath.GetProxyEndpointId())
+	if proxyID == "" {
+		return "", fmt.Errorf("proxy egress path requires proxy_endpoint_id")
+	}
+	return proxyID, nil
+}
+
+func authProviderNameForInspectionRule(authPolicyID string, dynamicHeaderAuthz bool) (string, error) {
 	if !dynamicHeaderAuthz || strings.TrimSpace(authPolicyID) == "" {
 		return "", nil
 	}
@@ -254,10 +366,14 @@ func valueIfNotEmpty(value string) []string {
 }
 
 type accessSetDiff struct {
-	added     int32
-	updated   int32
-	removed   int32
-	unchanged int32
+	addedExternalRule      int32
+	updatedExternalRule    int32
+	removedExternalRule    int32
+	unchangedExternalRule  int32
+	addedProxyEndpoint     int32
+	updatedProxyEndpoint   int32
+	removedProxyEndpoint   int32
+	unchangedProxyEndpoint int32
 }
 
 func diffAccessSet(before, after *egressv1.ExternalAccessSet) accessSetDiff {
@@ -267,21 +383,48 @@ func diffAccessSet(before, after *egressv1.ExternalAccessSet) accessSetDiff {
 	for id, next := range afterRules {
 		prev, ok := beforeRules[id]
 		if !ok {
-			diff.added++
+			diff.increment(id, "added")
 			continue
 		}
 		if proto.Equal(prev, next) {
-			diff.unchanged++
+			diff.increment(id, "unchanged")
 		} else {
-			diff.updated++
+			diff.increment(id, "updated")
 		}
 	}
 	for id := range beforeRules {
 		if _, ok := afterRules[id]; !ok {
-			diff.removed++
+			diff.increment(id, "removed")
 		}
 	}
 	return diff
+}
+
+func (d *accessSetDiff) increment(id string, operation string) {
+	switch {
+	case strings.HasPrefix(id, "external:"):
+		switch operation {
+		case "added":
+			d.addedExternalRule++
+		case "updated":
+			d.updatedExternalRule++
+		case "removed":
+			d.removedExternalRule++
+		case "unchanged":
+			d.unchangedExternalRule++
+		}
+	case strings.HasPrefix(id, "proxy:"):
+		switch operation {
+		case "added":
+			d.addedProxyEndpoint++
+		case "updated":
+			d.updatedProxyEndpoint++
+		case "removed":
+			d.removedProxyEndpoint++
+		case "unchanged":
+			d.unchangedProxyEndpoint++
+		}
+	}
 }
 
 func accessSetItemMap(accessSet *egressv1.ExternalAccessSet) map[string]proto.Message {
@@ -299,9 +442,14 @@ func accessSetItemMap(accessSet *egressv1.ExternalAccessSet) map[string]proto.Me
 			out["service:"+rule.GetServiceRuleId()] = rule
 		}
 	}
-	for _, route := range accessSet.GetHttpRoutes() {
-		if route.GetRouteId() != "" {
-			out["http:"+route.GetRouteId()] = route
+	for _, endpoint := range accessSet.GetProxyEndpoints() {
+		if endpoint.GetProxyEndpointId() != "" {
+			out["proxy:"+endpoint.GetProxyEndpointId()] = endpoint
+		}
+	}
+	for _, rule := range accessSet.GetHttpInspectionRules() {
+		if rule.GetInspectionRuleId() != "" {
+			out["http-inspection:"+rule.GetInspectionRuleId()] = rule
 		}
 	}
 	return out

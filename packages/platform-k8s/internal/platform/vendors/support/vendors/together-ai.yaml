@@ -1,0 +1,11 @@
+---
+providerBindings:
+- providerBinding:
+    surfaceId: openai-compatible
+  surfaceTemplates:
+  - runtime:
+      api:
+        baseUrl: https://api.together.xyz/v1
+        protocol: PROTOCOL_OPENAI_COMPATIBLE
+      displayName: Together AI OpenAI Compatible
+    surfaceId: openai-compatible

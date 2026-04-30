@@ -1,0 +1,11 @@
+---
+providerBindings:
+- providerBinding:
+    surfaceId: openai-compatible
+  surfaceTemplates:
+  - runtime:
+      api:
+        baseUrl: https://api.sambanova.ai/v1
+        protocol: PROTOCOL_OPENAI_COMPATIBLE
+      displayName: SambaNova OpenAI Compatible
+    surfaceId: openai-compatible

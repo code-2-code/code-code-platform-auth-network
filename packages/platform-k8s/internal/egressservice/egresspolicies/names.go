@@ -30,6 +30,10 @@ func l7EgressGatewayServiceName(destinationID string) string {
 	return l7EgressGatewayName(destinationID) + "-istio"
 }
 
+func tlsEgressGatewayName(destinationID string) string {
+	return resourceNameMax(resourcePrefixTLSGateway, destinationID, 57)
+}
+
 func gatewayDestinationRuleName(destinationID string) string {
 	return resourceName(resourcePrefixGatewayMTLS, destinationID)
 }
@@ -42,8 +46,36 @@ func forwardHTTPRouteName(routeID string) string {
 	return resourceName(resourcePrefixForwardHTTPRoute, routeID)
 }
 
+func directTLSRouteName(destinationID string) string {
+	return resourceName(resourcePrefixDirectTLSRoute, destinationID)
+}
+
+func proxyEndpointTLSRouteName(proxyEndpointID string) string {
+	return resourceName(resourcePrefixDirectTLSRoute, "proxy-"+proxyEndpointID)
+}
+
 func destinationRuleName(destinationID string) string {
 	return resourceName(resourcePrefixDestinationRule, destinationID)
+}
+
+func forwarderName(routeID string) string {
+	return resourceName(resourcePrefixForwarder, routeID)
+}
+
+func forwarderConfigName(routeID string) string {
+	return resourceName(resourcePrefixForwarderConfig, routeID)
+}
+
+func forwarderTLSRuleName(routeID string) string {
+	return resourceName(resourcePrefixForwarderTLS, routeID)
+}
+
+func forwarderNetworkPolicyName(routeID string) string {
+	return resourceName(resourcePrefixForwarderNetpol, routeID)
+}
+
+func proxyEndpointServiceEntryName(proxyEndpointID string) string {
+	return resourceName(resourcePrefixServiceEntry, "proxy-"+proxyEndpointID)
 }
 
 func dynamicHeaderAuthzPolicyName(providerName string) string {

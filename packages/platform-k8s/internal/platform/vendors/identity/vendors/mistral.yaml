@@ -1,0 +1,10 @@
+---
+aliases:
+- mistralai
+- mistral-ai
+- nv-mistralai
+description: Mistral AI models and APIs.
+displayName: Mistral AI
+iconUrl: https://mistral.ai/favicon.ico
+vendorId: mistral
+websiteUrl: https://mistral.ai

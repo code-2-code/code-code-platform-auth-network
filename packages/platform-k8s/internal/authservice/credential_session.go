@@ -39,7 +39,7 @@ func (s *Server) UpdateSessionCredential(ctx context.Context, request *authv1.Up
 }
 
 func (s *Server) writeSessionCredential(ctx context.Context, request sessionCredentialRequest, create bool) (*managementv1.CredentialView, error) {
-	values, err := s.sessionCredentialValues(ctx, request, create)
+	values, requiredKeys, err := s.sessionCredentialValues(ctx, request, create)
 	if err != nil {
 		return nil, grpcError(err)
 	}
@@ -52,7 +52,7 @@ func (s *Server) writeSessionCredential(ctx context.Context, request sessionCred
 		KindMetadata: &credentialv1.CredentialDefinition_SessionMetadata{
 			SessionMetadata: &credentialv1.SessionMetadata{
 				SchemaId:     request.GetSchemaId(),
-				RequiredKeys: append([]string(nil), request.GetRequiredKeys()...),
+				RequiredKeys: requiredKeys,
 			},
 		},
 	}, &credentialv1.ResolvedCredential{
@@ -71,17 +71,33 @@ func (s *Server) writeSessionCredential(ctx context.Context, request sessionCred
 	return s.writeCredential(ctx, request.GetCredentialId(), credential, create)
 }
 
-func (s *Server) sessionCredentialValues(ctx context.Context, request sessionCredentialRequest, create bool) (map[string]string, error) {
+func (s *Server) sessionCredentialValues(ctx context.Context, request sessionCredentialRequest, create bool) (map[string]string, []string, error) {
 	values := trimCredentialValues(request.GetValues())
-	if create || !request.GetMergeValues() || len(values) == 0 {
-		return values, nil
-	}
-	existing, err := s.credentialWriter.ReadMaterialValues(ctx, request.GetCredentialId())
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return values, nil
+	requiredKeys := trimCredentialKeys(request.GetRequiredKeys())
+	var existing map[string]string
+	if !create && request.GetMergeValues() {
+		current, err := s.credentialWriter.ReadMaterialValues(ctx, request.GetCredentialId())
+		if err != nil {
+			if !apierrors.IsNotFound(err) {
+				return nil, nil, err
+			}
 		}
-		return nil, err
+		existing = trimCredentialValues(current)
+	}
+	if s.sessionInputForms != nil {
+		form, ok, err := s.sessionInputForms.ResolveSessionInputForm(ctx, request.GetSchemaId())
+		if err != nil {
+			return nil, nil, err
+		}
+		if ok {
+			values, requiredKeys, err = normalizeSessionInputValues(form, values, existing)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+	}
+	if create || !request.GetMergeValues() || len(values) == 0 {
+		return values, requiredKeys, nil
 	}
 	merged := trimCredentialValues(existing)
 	for key, value := range values {
@@ -90,7 +106,7 @@ func (s *Server) sessionCredentialValues(ctx context.Context, request sessionCre
 		}
 		merged[key] = value
 	}
-	return merged, nil
+	return merged, requiredKeys, nil
 }
 
 func trimCredentialValues(values map[string]string) map[string]string {
@@ -105,6 +121,24 @@ func trimCredentialValues(values map[string]string) map[string]string {
 			continue
 		}
 		out[key] = value
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+func trimCredentialKeys(values []string) []string {
+	if len(values) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		out = append(out, value)
 	}
 	if len(out) == 0 {
 		return nil

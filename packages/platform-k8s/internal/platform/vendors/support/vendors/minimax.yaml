@@ -1,0 +1,450 @@
+---
+providerBindings:
+- observability:
+    profiles:
+    - activeQuery:
+        collectorId: minimax-remains
+        minimumPollInterval: 300s
+      displayName: MiniMax API Key Quota
+      metricQueries:
+      - displayName: MiniMax Remaining Count
+        language: METRIC_QUERY_LANGUAGE_PROMQL
+        metricNames:
+        - gen_ai.provider.quota.remaining
+        queryId: minimax_model_remaining_count
+        resultKind: METRIC_QUERY_RESULT_KIND_VECTOR
+        statement: max by (owner_kind, owner_id, vendor_id, access_target_id, provider_id,
+          model_id, resource, window) (gen_ai_provider_quota_remaining{vendor_id="minimax"})
+      - displayName: MiniMax Total Count
+        language: METRIC_QUERY_LANGUAGE_PROMQL
+        metricNames:
+        - gen_ai.provider.quota.limit
+        queryId: minimax_model_total_count
+        resultKind: METRIC_QUERY_RESULT_KIND_VECTOR
+        statement: max by (owner_kind, owner_id, vendor_id, access_target_id, provider_id,
+          model_id, resource, window) (gen_ai_provider_quota_limit{vendor_id="minimax"})
+      metrics:
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable access target identifier.
+          name: access_target_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Provider model identifier.
+          name: model_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization identifier.
+          name: org_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization name.
+          name: org_name
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider region identifier.
+          name: region_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limited resource type (requests, tokens, etc).
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limit time window (minute, hour, day).
+          name: window
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider project or account tier.
+          name: tier
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Whether the model catalog entry exposes preview aliases.
+          name: preview
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Quota dimension key (RPM, TPM, etc).
+          name: quota_type
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        category: OBSERVABILITY_METRIC_CATEGORY_QUOTA
+        description: Remaining MiniMax coding plan quota count for one supported model.
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.quota.remaining
+        unit: '{count}'
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable access target identifier.
+          name: access_target_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Provider model identifier.
+          name: model_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization identifier.
+          name: org_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization name.
+          name: org_name
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider region identifier.
+          name: region_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limited resource type (requests, tokens, etc).
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limit time window (minute, hour, day).
+          name: window
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider project or account tier.
+          name: tier
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Whether the model catalog entry exposes preview aliases.
+          name: preview
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Quota dimension key (RPM, TPM, etc).
+          name: quota_type
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        category: OBSERVABILITY_METRIC_CATEGORY_QUOTA
+        description: Total MiniMax coding plan quota count for one supported model.
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.quota.limit
+        unit: '{count}'
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable access target identifier.
+          name: access_target_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Provider model identifier.
+          name: model_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization identifier.
+          name: org_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization name.
+          name: org_name
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider region identifier.
+          name: region_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limited resource type (requests, tokens, etc).
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limit time window (minute, hour, day).
+          name: window
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider project or account tier.
+          name: tier
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Whether the model catalog entry exposes preview aliases.
+          name: preview
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Quota dimension key (RPM, TPM, etc).
+          name: quota_type
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        category: OBSERVABILITY_METRIC_CATEGORY_QUOTA
+        description: Remaining MiniMax coding plan quota percentage for one supported
+          model.
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.quota.remaining.fraction.percent
+        unit: '%'
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable access target identifier.
+          name: access_target_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Provider model identifier.
+          name: model_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization identifier.
+          name: org_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization name.
+          name: org_name
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider region identifier.
+          name: region_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limited resource type (requests, tokens, etc).
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limit time window (minute, hour, day).
+          name: window
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider project or account tier.
+          name: tier
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Whether the model catalog entry exposes preview aliases.
+          name: preview
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Quota dimension key (RPM, TPM, etc).
+          name: quota_type
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        category: OBSERVABILITY_METRIC_CATEGORY_QUOTA
+        description: MiniMax coding plan quota reset timestamp for one supported model.
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.quota.reset.timestamp.seconds
+        unit: s
+      profileId: api_key_quota
+  providerBinding:
+    surfaceId: openai-compatible
+  providerCard:
+    enabled: true
+  surfaceTemplates:
+  - bootstrapCatalog:
+      models:
+      - modelRef:
+          modelId: MiniMax-M2.7
+          vendorId: minimax
+        providerModelId: MiniMax-M2.7
+      - modelRef:
+          modelId: MiniMax-M2.7-highspeed
+          vendorId: minimax
+        providerModelId: MiniMax-M2.7-highspeed
+      - modelRef:
+          modelId: MiniMax-M2.5
+          vendorId: minimax
+        providerModelId: MiniMax-M2.5
+      - modelRef:
+          modelId: MiniMax-M2.5-highspeed
+          vendorId: minimax
+        providerModelId: MiniMax-M2.5-highspeed
+      source: CATALOG_SOURCE_VENDOR_PRESET
+    runtime:
+      api:
+        baseUrl: https://api.minimaxi.com/v1
+        protocol: PROTOCOL_OPENAI_COMPATIBLE
+      displayName: MiniMax OpenAI Compatible
+    surfaceId: openai-compatible
+- observability:
+    profiles:
+    - activeQuery:
+        collectorId: minimax-remains
+        minimumPollInterval: 300s
+      displayName: MiniMax API Key Quota
+      metricQueries:
+      - displayName: MiniMax Remaining Count
+        language: METRIC_QUERY_LANGUAGE_PROMQL
+        metricNames:
+        - gen_ai.provider.quota.remaining
+        queryId: minimax_model_remaining_count
+        resultKind: METRIC_QUERY_RESULT_KIND_VECTOR
+        statement: max by (owner_kind, owner_id, vendor_id, access_target_id, provider_id,
+          model_id, resource, window) (gen_ai_provider_quota_remaining{vendor_id="minimax"})
+      - displayName: MiniMax Total Count
+        language: METRIC_QUERY_LANGUAGE_PROMQL
+        metricNames:
+        - gen_ai.provider.quota.limit
+        queryId: minimax_model_total_count
+        resultKind: METRIC_QUERY_RESULT_KIND_VECTOR
+        statement: max by (owner_kind, owner_id, vendor_id, access_target_id, provider_id,
+          model_id, resource, window) (gen_ai_provider_quota_limit{vendor_id="minimax"})
+      metrics:
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable access target identifier.
+          name: access_target_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Provider model identifier.
+          name: model_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization identifier.
+          name: org_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization name.
+          name: org_name
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider region identifier.
+          name: region_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limited resource type (requests, tokens, etc).
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limit time window (minute, hour, day).
+          name: window
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider project or account tier.
+          name: tier
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Whether the model catalog entry exposes preview aliases.
+          name: preview
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Quota dimension key (RPM, TPM, etc).
+          name: quota_type
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        category: OBSERVABILITY_METRIC_CATEGORY_QUOTA
+        description: Remaining MiniMax coding plan quota count for one supported model.
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.quota.remaining
+        unit: '{count}'
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable access target identifier.
+          name: access_target_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Provider model identifier.
+          name: model_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization identifier.
+          name: org_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization name.
+          name: org_name
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider region identifier.
+          name: region_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limited resource type (requests, tokens, etc).
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limit time window (minute, hour, day).
+          name: window
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider project or account tier.
+          name: tier
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Whether the model catalog entry exposes preview aliases.
+          name: preview
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Quota dimension key (RPM, TPM, etc).
+          name: quota_type
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        category: OBSERVABILITY_METRIC_CATEGORY_QUOTA
+        description: Total MiniMax coding plan quota count for one supported model.
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.quota.limit
+        unit: '{count}'
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable access target identifier.
+          name: access_target_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Provider model identifier.
+          name: model_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization identifier.
+          name: org_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization name.
+          name: org_name
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider region identifier.
+          name: region_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limited resource type (requests, tokens, etc).
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limit time window (minute, hour, day).
+          name: window
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider project or account tier.
+          name: tier
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Whether the model catalog entry exposes preview aliases.
+          name: preview
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Quota dimension key (RPM, TPM, etc).
+          name: quota_type
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        category: OBSERVABILITY_METRIC_CATEGORY_QUOTA
+        description: Remaining MiniMax coding plan quota percentage for one supported
+          model.
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.quota.remaining.fraction.percent
+        unit: '%'
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable access target identifier.
+          name: access_target_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Provider model identifier.
+          name: model_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization identifier.
+          name: org_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization name.
+          name: org_name
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider region identifier.
+          name: region_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limited resource type (requests, tokens, etc).
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limit time window (minute, hour, day).
+          name: window
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider project or account tier.
+          name: tier
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Whether the model catalog entry exposes preview aliases.
+          name: preview
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Quota dimension key (RPM, TPM, etc).
+          name: quota_type
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        category: OBSERVABILITY_METRIC_CATEGORY_QUOTA
+        description: MiniMax coding plan quota reset timestamp for one supported model.
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.quota.reset.timestamp.seconds
+        unit: s
+      profileId: api_key_quota
+  providerBinding:
+    surfaceId: anthropic
+  providerCard:
+    enabled: true
+  surfaceTemplates:
+  - bootstrapCatalog:
+      models:
+      - modelRef:
+          modelId: MiniMax-M2.7
+          vendorId: minimax
+        providerModelId: MiniMax-M2.7
+      - modelRef:
+          modelId: MiniMax-M2.7-highspeed
+          vendorId: minimax
+        providerModelId: MiniMax-M2.7-highspeed
+      - modelRef:
+          modelId: MiniMax-M2.5
+          vendorId: minimax
+        providerModelId: MiniMax-M2.5
+      - modelRef:
+          modelId: MiniMax-M2.5-highspeed
+          vendorId: minimax
+        providerModelId: MiniMax-M2.5-highspeed
+      source: CATALOG_SOURCE_VENDOR_PRESET
+    runtime:
+      api:
+        baseUrl: https://api.minimaxi.com/anthropic
+        protocol: PROTOCOL_ANTHROPIC
+      displayName: MiniMax Anthropic
+    surfaceId: anthropic

@@ -1,20 +1,16 @@
 package authservice
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"errors"
 	"net/http"
-	"net/http/httptest"
+	"strings"
 	"testing"
 
-	apiprotocolv1 "code-code.internal/go-contract/api_protocol/v1"
 	credentialv1 "code-code.internal/go-contract/credential/v1"
 	authv1 "code-code.internal/go-contract/platform/auth/v1"
 	managementv1 "code-code.internal/go-contract/platform/management/v1"
-	providerv1 "code-code.internal/go-contract/provider/v1"
 	"code-code.internal/platform-k8s/internal/egressauth"
+	"code-code.internal/platform-k8s/internal/egressauthpolicy"
 	"google.golang.org/grpc"
 )
 
@@ -42,68 +38,7 @@ func (c *fakeRuntimeContextClient) ResolveAgentRunRuntimeContext(_ context.Conte
 	return c.response, c.err
 }
 
-type fakeProviderStore struct {
-	providers []*providerv1.Provider
-}
-
-func (s fakeProviderStore) List(context.Context) ([]*providerv1.Provider, error) {
-	return s.providers, nil
-}
-
-func (s fakeProviderStore) Get(context.Context, string) (*providerv1.Provider, error) {
-	return nil, errors.New("unused")
-}
-
-func (s fakeProviderStore) Upsert(context.Context, *providerv1.Provider) (*providerv1.Provider, error) {
-	return nil, errors.New("unused")
-}
-
-func (s fakeProviderStore) Update(context.Context, string, func(*providerv1.Provider) error) (*providerv1.Provider, error) {
-	return nil, errors.New("unused")
-}
-
-func (s fakeProviderStore) Delete(context.Context, string) error {
-	return errors.New("unused")
-}
-
-func TestEgressAuthHTTPHandlerReplacesBearerHeader(t *testing.T) {
-	server := &Server{
-		credentialResolver: &fakeCredentialResolver{
-			credential: &credentialv1.ResolvedCredential{
-				GrantId: "cred-1",
-				Kind:    credentialv1.CredentialKind_CREDENTIAL_KIND_OAUTH,
-				Material: &credentialv1.ResolvedCredential_Oauth{
-					Oauth: &credentialv1.OAuthCredential{AccessToken: "synthetic-token", TokenType: "Bearer"},
-				},
-			},
-		},
-	}
-	body := []byte(`{
-		"credentialId":"cred-1",
-		"headerValuePrefix":"Bearer",
-		"simpleReplacementRules":[{"mode":"bearer","headerName":"authorization"}],
-		"headers":[{"name":"authorization","currentValue":"Bearer PLACEHOLDER"}]
-	}`)
-	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, egressAuthHeaderReplacementPath, bytes.NewReader(body))
-	server.EgressAuthHTTPHandler().ServeHTTP(recorder, request)
-
-	if recorder.Code != http.StatusOK {
-		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
-	}
-	var response egressAuthHeaderReplacementResponse
-	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
-		t.Fatalf("decode response: %v", err)
-	}
-	if got, want := httpHeaderMutationValue(response.Headers, "authorization"), "Bearer synthetic-token"; got != want {
-		t.Fatalf("authorization = %q, want %q", got, want)
-	}
-	if len(response.RemoveHeaders) == 0 {
-		t.Fatal("RemoveHeaders is empty")
-	}
-}
-
-func TestResolveEgressRequestHeadersResolvesCredentialFromProviderSurfaceBinding(t *testing.T) {
+func TestResolveEgressRequestHeadersResolvesCredentialFromAuthPolicyMatch(t *testing.T) {
 	resolver := &fakeCredentialResolver{
 		credential: &credentialv1.ResolvedCredential{
 			GrantId: "cred-1",
@@ -114,26 +49,36 @@ func TestResolveEgressRequestHeadersResolvesCredentialFromProviderSurfaceBinding
 		},
 	}
 	server := &Server{
-		namespace:          "code-code",
-		providers:          fakeProviderStore{providers: []*providerv1.Provider{providerWithSurface("provider-1", "surface-1", "cred-1", "https://api.example.test/v1")}},
 		credentialResolver: resolver,
+		headerRewritePolicies: mustHeaderRewritePolicies(t, `
+policies:
+  - policyId: test.workload-bearer
+    source:
+      serviceAccounts:
+        - code-code/platform-observability-runner
+    target:
+      hosts:
+        - api.example.test
+      pathPrefixes:
+        - /v1
+      methods:
+        - GET
+    materializations:
+      - materializationKey: test.workload-bearer
+        credentialId: cred-1
+        requestReplacementRules:
+          - mode: bearer
+            headerName: authorization
+            materialKey: access_token
+            headerValuePrefix: Bearer
+`),
 	}
 
 	response, err := server.ResolveEgressRequestHeaders(context.Background(), &authv1.ResolveEgressRequestHeadersRequest{
-		SourcePrincipal:          "spiffe://cluster.local/ns/code-code/sa/platform-model-service",
-		ProviderSurfaceBindingId: "surface-1",
-		TargetHost:               "api.example.test:443",
-		TargetPath:               "/v1/models",
-		HeaderValuePrefix:        "Bearer",
-		AllowedHeaderNames:       []string{"authorization"},
-		SimpleReplacementRules: []*authv1.EgressSimpleReplacementRule{{
-			Mode:       egressauth.SimpleReplacementModeBearer,
-			HeaderName: "authorization",
-		}},
-		Headers: []*authv1.EgressHeaderReplacementItem{{
-			Name:         "authorization",
-			CurrentValue: "Bearer " + egressauth.Placeholder,
-		}},
+		SourcePrincipal: "spiffe://cluster.local/ns/code-code/sa/platform-observability-runner",
+		TargetHost:      "api.example.test:443",
+		TargetPath:      "/v1/models",
+		TargetMethod:    http.MethodGet,
 	})
 	if err != nil {
 		t.Fatalf("ResolveEgressRequestHeaders() error = %v", err)
@@ -144,15 +89,12 @@ func TestResolveEgressRequestHeadersResolvesCredentialFromProviderSurfaceBinding
 	if got, want := headerMutationValue(response.GetHeaders(), "authorization"), "Bearer surface-token"; got != want {
 		t.Fatalf("authorization = %q, want %q", got, want)
 	}
-	if !containsHeaderName(response.GetRemoveHeaders(), egressauth.HeaderProviderSurfaceBindingID) {
-		t.Fatalf("remove_headers = %v, want %s", response.GetRemoveHeaders(), egressauth.HeaderProviderSurfaceBindingID)
-	}
 }
 
-func TestResolveEgressRequestHeadersUsesObservabilityCredentialForSessionAdapter(t *testing.T) {
+func TestResolveEgressRequestHeadersUsesAuthPolicyCredentialForSessionAdapter(t *testing.T) {
 	resolver := &fakeCredentialResolver{
 		credential: &credentialv1.ResolvedCredential{
-			GrantId: "provider-1-observability",
+			GrantId: "credential-observability",
 			Kind:    credentialv1.CredentialKind_CREDENTIAL_KIND_SESSION,
 			Material: &credentialv1.ResolvedCredential_Session{
 				Session: &credentialv1.SessionCredential{Values: map[string]string{
@@ -162,35 +104,108 @@ func TestResolveEgressRequestHeadersUsesObservabilityCredentialForSessionAdapter
 		},
 	}
 	server := &Server{
-		namespace:          "code-code",
-		providers:          fakeProviderStore{providers: []*providerv1.Provider{providerWithSurface("provider-1", "surface-1", "primary-cred", "https://cloud.cerebras.ai/api/graphql")}},
 		credentialResolver: resolver,
+		headerRewritePolicies: mustHeaderRewritePolicies(t, `
+policies:
+  - policyId: test.authjs-session
+    adapterId: session-cookie
+    source:
+      serviceAccounts:
+        - code-code/platform-observability-runner
+    target:
+      hosts:
+        - cloud.cerebras.ai
+      pathPrefixes:
+        - /api/graphql
+    materializations:
+      - materializationKey: test.authjs-session
+        credentialId: credential-observability
+        requestReplacementRules:
+          - mode: cookie
+            headerName: cookie
+            materialKey: authjs_session_token
+            template: authjs.session-token=PLACEHOLDER
+`),
 	}
 
 	response, err := server.ResolveEgressRequestHeaders(context.Background(), &authv1.ResolveEgressRequestHeadersRequest{
-		AdapterId:                egressauth.AuthAdapterSessionCookieID,
-		SourcePrincipal:          "spiffe://cluster.local/ns/code-code/sa/platform-provider-service",
-		ProviderSurfaceBindingId: "surface-1",
-		TargetHost:               "cloud.cerebras.ai:443",
-		TargetPath:               "/api/graphql",
-		AllowedHeaderNames:       []string{"cookie"},
-		SimpleReplacementRules: []*authv1.EgressSimpleReplacementRule{{
-			Mode:       egressauth.SimpleReplacementModeCookie,
-			HeaderName: "cookie",
-		}},
-		Headers: []*authv1.EgressHeaderReplacementItem{{
-			Name:         "cookie",
-			CurrentValue: "authjs.session-token=" + egressauth.Placeholder,
-		}},
+		SourcePrincipal: "spiffe://cluster.local/ns/code-code/sa/platform-observability-runner",
+		TargetHost:      "cloud.cerebras.ai:443",
+		TargetPath:      "/api/graphql",
 	})
 	if err != nil {
 		t.Fatalf("ResolveEgressRequestHeaders() error = %v", err)
 	}
-	if got, want := resolver.grantID, "provider-1-observability"; got != want {
+	if got, want := resolver.grantID, "credential-observability"; got != want {
 		t.Fatalf("resolved credential id = %q, want %q", got, want)
 	}
 	if got, want := headerMutationValue(response.GetHeaders(), "cookie"), "authjs.session-token=session-token"; got != want {
 		t.Fatalf("cookie = %q, want %q", got, want)
+	}
+}
+
+func TestResolveEgressRequestHeadersGeneratesGoogleAIStudioHeadersFromAuthPolicy(t *testing.T) {
+	resolver := &fakeCredentialResolver{
+		credential: &credentialv1.ResolvedCredential{
+			GrantId: "credential-observability",
+			Kind:    credentialv1.CredentialKind_CREDENTIAL_KIND_SESSION,
+			Material: &credentialv1.ResolvedCredential_Session{
+				Session: &credentialv1.SessionCredential{Values: map[string]string{
+					"cookie":       "SAPISID=sapisid; __Secure-1PAPISID=one; __Secure-3PAPISID=three",
+					"page_api_key": "page-key",
+				}},
+			},
+		},
+	}
+	server := &Server{
+		credentialResolver: resolver,
+		headerRewritePolicies: mustHeaderRewritePolicies(t, `
+policies:
+  - policyId: test.google-aistudio-session
+    adapterId: google-aistudio-session
+    source:
+      serviceAccounts:
+        - code-code/platform-observability-runner
+    target:
+      hosts:
+        - alkalimakersuite-pa.clients6.google.com
+      pathPrefixes:
+        - /$rpc/google.internal.alkali.applications.makersuite.v1.MakerSuiteService/
+      methods:
+        - POST
+    materializations:
+      - materializationKey: test.google-aistudio-session
+        credentialId: credential-observability
+        requestReplacementRules:
+          - headerName: authorization
+          - headerName: cookie
+          - headerName: x-goog-api-key
+`),
+	}
+
+	response, err := server.ResolveEgressRequestHeaders(context.Background(), &authv1.ResolveEgressRequestHeadersRequest{
+		SourcePrincipal: "spiffe://cluster.local/ns/code-code/sa/platform-observability-runner",
+		TargetHost:      "alkalimakersuite-pa.clients6.google.com:443",
+		TargetPath:      "/$rpc/google.internal.alkali.applications.makersuite.v1.MakerSuiteService/ListModelRateLimits",
+		TargetMethod:    http.MethodPost,
+		RequestHeaders: map[string]string{
+			"origin": "https://aistudio.google.com",
+		},
+	})
+	if err != nil {
+		t.Fatalf("ResolveEgressRequestHeaders() error = %v", err)
+	}
+	if got, want := resolver.grantID, "credential-observability"; got != want {
+		t.Fatalf("resolved credential id = %q, want %q", got, want)
+	}
+	if got := headerMutationValue(response.GetHeaders(), "authorization"); !strings.Contains(got, "SAPISIDHASH ") || strings.Contains(got, egressauth.Placeholder) {
+		t.Fatalf("authorization = %q, want generated SAPISIDHASH without placeholder", got)
+	}
+	if got, want := headerMutationValue(response.GetHeaders(), "cookie"), "SAPISID=sapisid; __Secure-1PAPISID=one; __Secure-3PAPISID=three"; got != want {
+		t.Fatalf("cookie = %q, want %q", got, want)
+	}
+	if got, want := headerMutationValue(response.GetHeaders(), "x-goog-api-key"), "page-key"; got != want {
+		t.Fatalf("x-goog-api-key = %q, want %q", got, want)
 	}
 }
 
@@ -407,6 +422,40 @@ func TestResolveEgressResponseHeadersPreservesMultipleSetCookieHeaders(t *testin
 	}
 }
 
+func TestResolveEgressResponseHeadersRemovesUnmatchedSetCookie(t *testing.T) {
+	server := &Server{
+		credentialResolver: &fakeCredentialResolver{
+			credential: &credentialv1.ResolvedCredential{
+				GrantId: "cred-1",
+				Kind:    credentialv1.CredentialKind_CREDENTIAL_KIND_SESSION,
+				Material: &credentialv1.ResolvedCredential_Session{
+					Session: &credentialv1.SessionCredential{Values: map[string]string{
+						"sid": "session-secret",
+					}},
+				},
+			},
+		},
+	}
+
+	response, err := server.ResolveEgressResponseHeaders(context.Background(), &authv1.ResolveEgressResponseHeadersRequest{
+		CredentialId:       "cred-1",
+		AllowedHeaderNames: []string{"set-cookie"},
+		Headers: []*authv1.EgressHeaderReplacementItem{{
+			Name:         "set-cookie",
+			CurrentValue: "OTHER=new-secret; Path=/; Secure",
+		}},
+	})
+	if err != nil {
+		t.Fatalf("ResolveEgressResponseHeaders() error = %v", err)
+	}
+	if len(response.GetHeaders()) != 0 {
+		t.Fatalf("headers = %v, want empty", response.GetHeaders())
+	}
+	if !containsHeaderName(response.GetRemoveHeaders(), "set-cookie") {
+		t.Fatalf("remove_headers = %v, want set-cookie", response.GetRemoveHeaders())
+	}
+}
+
 func TestResolveEgressResponseHeadersSanitizesControlPlaneTemplate(t *testing.T) {
 	server := &Server{
 		credentialResolver: &fakeCredentialResolver{
@@ -441,104 +490,6 @@ func TestResolveEgressResponseHeadersSanitizesControlPlaneTemplate(t *testing.T)
 	}
 }
 
-func TestEgressAuthHTTPHandlerGoogleAIStudioAdapter(t *testing.T) {
-	server := &Server{
-		credentialResolver: &fakeCredentialResolver{
-			credential: &credentialv1.ResolvedCredential{
-				GrantId: "cred-1",
-				Kind:    credentialv1.CredentialKind_CREDENTIAL_KIND_SESSION,
-				Material: &credentialv1.ResolvedCredential_Session{
-					Session: &credentialv1.SessionCredential{Values: map[string]string{
-						"page_api_key": "page-key",
-						"cookie":       "SAPISID=sapisid",
-					}},
-				},
-			},
-		},
-	}
-	body := []byte(`{
-		"credentialId":"cred-1",
-		"adapterId":"google-aistudio-session",
-		"headers":[{"name":"x-goog-api-key","currentValue":"PLACEHOLDER"}]
-	}`)
-	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, egressAuthHeaderReplacementPath, bytes.NewReader(body))
-	server.EgressAuthHTTPHandler().ServeHTTP(recorder, request)
-
-	if recorder.Code != http.StatusOK {
-		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
-	}
-	var response egressAuthHeaderReplacementResponse
-	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
-		t.Fatalf("decode response: %v", err)
-	}
-	if got, want := httpHeaderMutationValue(response.Headers, "x-goog-api-key"), "page-key"; got != want {
-		t.Fatalf("x-goog-api-key = %q, want %q", got, want)
-	}
-}
-
-func TestEgressAuthHTTPHandlerUsesDeclarativeSimpleRule(t *testing.T) {
-	server := &Server{
-		credentialResolver: &fakeCredentialResolver{
-			credential: &credentialv1.ResolvedCredential{
-				GrantId: "cred-1",
-				Kind:    credentialv1.CredentialKind_CREDENTIAL_KIND_OAUTH,
-				Material: &credentialv1.ResolvedCredential_Oauth{
-					Oauth: &credentialv1.OAuthCredential{
-						AccessToken: "access-token",
-						IdToken:     "id-token",
-					},
-				},
-			},
-		},
-	}
-	body := []byte(`{
-		"credentialId":"cred-1",
-		"simpleReplacementRules":[{"headerName":"authorization","materialKey":"id_token","template":"Bearer PLACEHOLDER"}],
-		"headers":[{"name":"authorization","currentValue":"PLACEHOLDER"}]
-	}`)
-	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, egressAuthHeaderReplacementPath, bytes.NewReader(body))
-	server.EgressAuthHTTPHandler().ServeHTTP(recorder, request)
-
-	if recorder.Code != http.StatusOK {
-		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
-	}
-	var response egressAuthHeaderReplacementResponse
-	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
-		t.Fatalf("decode response: %v", err)
-	}
-	if got, want := httpHeaderMutationValue(response.Headers, "authorization"), "Bearer id-token"; got != want {
-		t.Fatalf("authorization = %q, want %q", got, want)
-	}
-}
-
-func TestEgressAuthHTTPHandlerDoesNotEchoMaterialOnFailure(t *testing.T) {
-	server := &Server{
-		credentialResolver: &fakeCredentialResolver{
-			credential: &credentialv1.ResolvedCredential{
-				GrantId:  "cred-1",
-				Kind:     credentialv1.CredentialKind_CREDENTIAL_KIND_API_KEY,
-				Material: &credentialv1.ResolvedCredential_ApiKey{ApiKey: &credentialv1.ApiKeyCredential{ApiKey: "synthetic-secret"}},
-			},
-		},
-	}
-	body := []byte(`{
-		"credentialId":"cred-1",
-		"headers":[{"name":"authorization","currentValue":"no-placeholder"}]
-	}`)
-	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, egressAuthHeaderReplacementPath, bytes.NewReader(body))
-	server.EgressAuthHTTPHandler().ServeHTTP(recorder, request)
-
-	if recorder.Code != http.StatusBadRequest {
-		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
-	}
-	if bytes.Contains(recorder.Body.Bytes(), []byte("synthetic-secret")) || bytes.Contains(recorder.Body.Bytes(), []byte(egressauth.Placeholder)) {
-		t.Fatalf("failure response leaked sensitive material: %s", recorder.Body.String())
-	}
-}
-
 func containsHeaderName(values []string, want string) bool {
 	for _, value := range values {
 		if value == want {
@@ -568,30 +519,11 @@ func headerMutationValues(headers []*authv1.EgressHeaderMutation, name string) [
 	return values
 }
 
-func httpHeaderMutationValue(headers []egressAuthHeaderMutation, name string) string {
-	name = normalizeHTTPHeaderName(name)
-	for _, header := range headers {
-		if normalizeHTTPHeaderName(header.Name) == name {
-			return header.Value
-		}
+func mustHeaderRewritePolicies(t *testing.T, raw string) *egressauthpolicy.Catalog {
+	t.Helper()
+	catalog, err := egressauthpolicy.LoadCatalog([]byte(raw))
+	if err != nil {
+		t.Fatalf("LoadCatalog() error = %v", err)
 	}
-	return ""
-}
-
-func providerWithSurface(providerID string, surfaceID string, credentialID string, baseURL string) *providerv1.Provider {
-	return &providerv1.Provider{
-		ProviderId: providerID,
-		Surfaces: []*providerv1.ProviderSurfaceBinding{{
-			SurfaceId: surfaceID,
-			ProviderCredentialRef: &providerv1.ProviderCredentialRef{
-				ProviderCredentialId: credentialID,
-			},
-			Runtime: &providerv1.ProviderSurfaceRuntime{
-				Access: &providerv1.ProviderSurfaceRuntime_Api{Api: &providerv1.ProviderAPISurfaceRuntime{
-					Protocol: apiprotocolv1.Protocol_PROTOCOL_OPENAI_COMPATIBLE,
-					BaseUrl:  baseURL,
-				}},
-			},
-		}},
-	}
+	return catalog
 }

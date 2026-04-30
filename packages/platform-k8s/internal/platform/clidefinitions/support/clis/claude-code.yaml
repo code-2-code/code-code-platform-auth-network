@@ -1,0 +1,30 @@
+---
+cliId: claude-code
+displayName: Claude Code
+iconUrl: https://code.claude.com/docs/favicon.ico
+websiteUrl: https://www.anthropic.com/product/claude-code
+vendorId: anthropic
+runtimeCapabilities:
+- kind: RUNTIME_CAPABILITY_KIND_SKILL
+  supported: false
+- kind: RUNTIME_CAPABILITY_KIND_RULE
+  supported: false
+- kind: RUNTIME_CAPABILITY_KIND_MCP
+  supported: false
+- kind: RUNTIME_CAPABILITY_KIND_LSP
+  supported: false
+apiKeyProtocols:
+- protocol: PROTOCOL_ANTHROPIC
+  displayName: Anthropic
+  authMaterialization:
+    materializationKey: claude-code.anthropic-api-key
+    runtimeUrlProjectionKind: RUNTIME_PROJECTION_KIND_BASE_URL
+    includeRuntimeUrlHost: true
+    requestAuthInjection:
+      headerNames:
+      - x-api-key
+officialVersion: 2.1.124
+officialVersionSource:
+  npmDistTag:
+    packageName: "@anthropic-ai/claude-code"
+    distTag: next

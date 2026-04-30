@@ -28,18 +28,23 @@ type ServiceConfig struct {
 }
 
 type ApplyExternalAccessSetResult struct {
-	Item      *managementv1.EgressPolicyView
-	Added     int32
-	Updated   int32
-	Removed   int32
-	Unchanged int32
+	Item                   *managementv1.EgressPolicyView
+	AddedExternalRule      int32
+	UpdatedExternalRule    int32
+	RemovedExternalRule    int32
+	UnchangedExternalRule  int32
+	AddedProxyEndpoint     int32
+	UpdatedProxyEndpoint   int32
+	RemovedProxyEndpoint   int32
+	UnchangedProxyEndpoint int32
 }
 
 type DeleteExternalAccessSetResult struct {
-	Item                *managementv1.EgressPolicyView
-	RemovedExternalRule int32
-	RemovedServiceRule  int32
-	RemovedHTTPRoute    int32
+	Item                      *managementv1.EgressPolicyView
+	RemovedExternalRule       int32
+	RemovedServiceRule        int32
+	RemovedHTTPInspectionRule int32
+	RemovedProxyEndpoint      int32
 }
 
 func NewService(config ServiceConfig) (*Service, error) {
@@ -101,7 +106,7 @@ func (s *Service) ApplyExternalAccessSet(ctx context.Context, accessSet *egressv
 	if err != nil {
 		return nil, err
 	}
-	if len(normalizedSet.GetExternalRules()) == 0 && len(normalizedSet.GetServiceRules()) == 0 && len(normalizedSet.GetHttpRoutes()) == 0 {
+	if len(normalizedSet.GetExternalRules()) == 0 && len(normalizedSet.GetServiceRules()) == 0 && len(normalizedSet.GetHttpInspectionRules()) == 0 && len(normalizedSet.GetProxyEndpoints()) == 0 {
 		return nil, fmt.Errorf("external access set %q is empty; use DeleteExternalAccessSet to remove an existing set", normalizedSet.GetAccessSetId())
 	}
 	next := proto.Clone(current).(*egressv1.EgressPolicy)
@@ -116,11 +121,15 @@ func (s *Service) ApplyExternalAccessSet(ctx context.Context, accessSet *egressv
 	}
 	diff := diffAccessSet(beforeSet, normalizedSet)
 	return &ApplyExternalAccessSetResult{
-		Item:      item,
-		Added:     diff.added,
-		Updated:   diff.updated,
-		Removed:   diff.removed,
-		Unchanged: diff.unchanged,
+		Item:                   item,
+		AddedExternalRule:      diff.addedExternalRule,
+		UpdatedExternalRule:    diff.updatedExternalRule,
+		RemovedExternalRule:    diff.removedExternalRule,
+		UnchangedExternalRule:  diff.unchangedExternalRule,
+		AddedProxyEndpoint:     diff.addedProxyEndpoint,
+		UpdatedProxyEndpoint:   diff.updatedProxyEndpoint,
+		RemovedProxyEndpoint:   diff.removedProxyEndpoint,
+		UnchangedProxyEndpoint: diff.unchangedProxyEndpoint,
 	}, nil
 }
 
@@ -154,7 +163,8 @@ func (s *Service) DeleteExternalAccessSet(ctx context.Context, policyID string, 
 	if removed != nil {
 		result.RemovedExternalRule = int32(len(removed.GetExternalRules()))
 		result.RemovedServiceRule = int32(len(removed.GetServiceRules()))
-		result.RemovedHTTPRoute = int32(len(removed.GetHttpRoutes()))
+		result.RemovedHTTPInspectionRule = int32(len(removed.GetHttpInspectionRules()))
+		result.RemovedProxyEndpoint = int32(len(removed.GetProxyEndpoints()))
 	}
 	return result, nil
 }
@@ -171,6 +181,9 @@ func (s *Service) applyPolicy(ctx context.Context, policy *egressv1.EgressPolicy
 	if err != nil {
 		return nil, err
 	}
+	if err := validateRuntimeForDesired(s.egressRuntime, desired); err != nil {
+		return nil, err
+	}
 	objects := desiredObjects(s.egressRuntime, desired)
 	if err := s.savePolicy(ctx, policy); err != nil {
 		return nil, err
@@ -179,6 +192,16 @@ func (s *Service) applyPolicy(ctx context.Context, policy *egressv1.EgressPolicy
 		return nil, err
 	}
 	return s.view(policy, resourceRefsFromObjects(objects)), nil
+}
+
+func validateRuntimeForDesired(runtime egressRuntime, desired desiredState) error {
+	if len(proxyEgressDestinations(desired.destinations)) == 0 {
+		return nil
+	}
+	if strings.TrimSpace(runtime.forwarderImage) == "" {
+		return fmt.Errorf("egress forwarder image is required when proxy egress destinations are configured")
+	}
+	return nil
 }
 
 func (s *Service) view(policy *egressv1.EgressPolicy, refs []*egressv1.EgressResourceRef) *managementv1.EgressPolicyView {

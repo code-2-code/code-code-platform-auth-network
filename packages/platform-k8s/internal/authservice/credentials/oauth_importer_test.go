@@ -13,7 +13,7 @@ import (
 	credentialcontract "code-code.internal/platform-contract/credential"
 	platformv1alpha1 "code-code.internal/platform-k8s/api/v1alpha1"
 	"code-code.internal/platform-k8s/internal/platform/testutil"
-	"code-code.internal/platform-k8s/internal/supportservice/clidefinitions/codeassist"
+	"code-code.internal/platform-k8s/internal/platform/codeassist"
 	"k8s.io/apimachinery/pkg/types"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlclientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"

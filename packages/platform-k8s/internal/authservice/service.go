@@ -12,9 +12,7 @@ import (
 	"code-code.internal/platform-k8s/internal/authservice/credentials"
 	"code-code.internal/platform-k8s/internal/authservice/oauth"
 	"code-code.internal/platform-k8s/internal/egressauthpolicy"
-	"code-code.internal/platform-k8s/internal/providerservice/providers"
-	clioauthobservability "code-code.internal/platform-k8s/internal/supportservice/clidefinitions/observability"
-	"code-code.internal/platform-k8s/internal/supportservice/references"
+	clioauthobservability "code-code.internal/platform-k8s/internal/platform/clidefinitions/observability"
 )
 
 func NewServer(config Config) (*Server, error) {
@@ -35,10 +33,7 @@ func NewServer(config Config) (*Server, error) {
 	}
 	namespace := strings.TrimSpace(config.Namespace)
 	runtimeNamespace := strings.TrimSpace(config.RuntimeNamespace)
-	providerRepository, err := providers.NewProviderRepository(config.StatePool)
-	if err != nil {
-		return nil, fmt.Errorf("platformk8s/authservice: create provider repository: %w", err)
-	}
+	var err error
 	credentialStore := config.CredentialStore
 	if credentialStore == nil && config.DomainOutbox != nil {
 		credentialStore, err = credentials.NewPostgresResourceStore(config.StatePool, config.DomainOutbox, namespace)
@@ -72,11 +67,9 @@ func NewServer(config Config) (*Server, error) {
 	}
 	materialReadPolicy := config.MaterialReadPolicy
 	if materialReadPolicy == nil {
-		materialReadPolicy, err = NewSupportCredentialMaterialReadAuthorizer()
-		if err != nil {
-			return nil, fmt.Errorf("platformk8s/authservice: create credential material read policy authorizer: %w", err)
-		}
+		materialReadPolicy = denyCredentialMaterialReadAuthorizer{}
 	}
+	sessionInputForms := config.SessionInputForms
 	oauthImporter, err := credentials.NewOAuthCredentialImporterWithStores(config.Client, namespace, credentialStore, credentialMaterial)
 	if err != nil {
 		return nil, fmt.Errorf("platformk8s/authservice: create oauth importer: %w", err)
@@ -94,7 +87,7 @@ func NewServer(config Config) (*Server, error) {
 			return nil, fmt.Errorf("platformk8s/authservice: create oauth session store: %w", err)
 		}
 	}
-	observer, err := clioauthobservability.RegisterWithCredentialStore(config.Client, namespace, providerRepository, credentialStore, credentialMaterial)
+	observer, err := clioauthobservability.RegisterWithCredentialStore(config.Client, namespace, credentialStore, credentialMaterial)
 	if err != nil {
 		return nil, fmt.Errorf("platformk8s/authservice: register oauth observer: %w", err)
 	}
@@ -137,15 +130,15 @@ func NewServer(config Config) (*Server, error) {
 		credentialStore:       credentialStore,
 		credentialMaterial:    credentialMaterial,
 		materialReadPolicy:    materialReadPolicy,
+		sessionInputForms:     sessionInputForms,
 		credentialWriter:      credentialWriter,
 		credentialResolver:    credentialGrantResolver{base: credentialResolver},
-		credentialRefChecker:  references.NewResourceReferenceChecker(providerRepository),
-		providers:             providerRepository,
 		oauthImporter:         oauthImporter,
 		refreshRunner:         refreshRunner,
 		oauthSessions:         oauthSessions,
 		agentSessions:         agentSessions,
 		headerRewritePolicies: headerRewritePolicies,
+		logger:                config.Logger,
 	}, nil
 }
 

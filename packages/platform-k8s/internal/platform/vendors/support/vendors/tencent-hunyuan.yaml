@@ -1,0 +1,11 @@
+---
+providerBindings:
+- providerBinding:
+    surfaceId: openai-compatible
+  surfaceTemplates:
+  - runtime:
+      api:
+        baseUrl: https://api.hunyuan.cloud.tencent.com/v1
+        protocol: PROTOCOL_OPENAI_COMPATIBLE
+      displayName: Tencent Hunyuan OpenAI Compatible
+    surfaceId: openai-compatible

@@ -1,0 +1,11 @@
+---
+providerBindings:
+- providerBinding:
+    surfaceId: openai-compatible
+  surfaceTemplates:
+  - runtime:
+      api:
+        baseUrl: https://api.openai.com/v1
+        protocol: PROTOCOL_OPENAI_COMPATIBLE
+      displayName: OpenAI Compatible
+    surfaceId: openai-compatible

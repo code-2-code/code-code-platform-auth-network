@@ -47,11 +47,25 @@ type policyConfig struct {
 	PolicyID              string                  `json:"policyId"`
 	AdapterID             string                  `json:"adapterId"`
 	ExtensionProviderName string                  `json:"extensionProviderName"`
+	Source                policySourceConfig      `json:"source"`
+	Target                policyTargetConfig      `json:"target"`
 	Materializations      []materializationConfig `json:"materializations"`
+}
+
+type policySourceConfig struct {
+	Principals      []string `json:"principals"`
+	ServiceAccounts []string `json:"serviceAccounts"`
+}
+
+type policyTargetConfig struct {
+	Hosts        []string `json:"hosts"`
+	PathPrefixes []string `json:"pathPrefixes"`
+	Methods      []string `json:"methods"`
 }
 
 type materializationConfig struct {
 	MaterializationKey       string                             `json:"materializationKey"`
+	CredentialID             string                             `json:"credentialId"`
 	RequestReplacementRules  []egressauth.SimpleReplacementRule `json:"requestReplacementRules"`
 	ResponseReplacementRules []egressauth.SimpleReplacementRule `json:"responseReplacementRules"`
 	HeaderValuePrefix        string                             `json:"headerValuePrefix"`
@@ -102,6 +116,62 @@ func (c *Catalog) ResolvePolicyID(policyID string) (*authv1.GetEgressAuthPolicyR
 	return resolvePolicy(policy, ""), true
 }
 
+func (c *Catalog) ResolveRequestPolicy(request *authv1.ResolveEgressRequestHeadersRequest) (*authv1.GetEgressAuthPolicyResponse, bool, error) {
+	if c == nil || request == nil {
+		return nil, false, nil
+	}
+	matches := make([]policyConfig, 0, 1)
+	for _, policy := range c.policies {
+		if !policyHasRequestMatch(policy) {
+			continue
+		}
+		if !policyMatchesRequest(policy, request.GetSourcePrincipal(), request.GetTargetHost(), request.GetTargetPath(), request.GetTargetMethod()) {
+			continue
+		}
+		matches = append(matches, policy)
+	}
+	if len(matches) == 0 {
+		return nil, false, nil
+	}
+	if len(matches) > 1 {
+		ids := make([]string, 0, len(matches))
+		for _, match := range matches {
+			ids = append(ids, strings.TrimSpace(match.PolicyID))
+		}
+		sort.Strings(ids)
+		return nil, false, fmt.Errorf("multiple egress auth policies match request: %s", strings.Join(ids, ", "))
+	}
+	return resolvePolicy(matches[0], ""), true, nil
+}
+
+func (c *Catalog) ResolveResponsePolicy(request *authv1.ResolveEgressResponseHeadersRequest) (*authv1.GetEgressAuthPolicyResponse, bool, error) {
+	if c == nil || request == nil {
+		return nil, false, nil
+	}
+	matches := make([]policyConfig, 0, 1)
+	for _, policy := range c.policies {
+		if !policyHasResponseMatch(policy) {
+			continue
+		}
+		if !policyMatchesRequest(policy, request.GetSourcePrincipal(), request.GetTargetHost(), request.GetTargetPath(), request.GetTargetMethod()) {
+			continue
+		}
+		matches = append(matches, policy)
+	}
+	if len(matches) == 0 {
+		return nil, false, nil
+	}
+	if len(matches) > 1 {
+		ids := make([]string, 0, len(matches))
+		for _, match := range matches {
+			ids = append(ids, strings.TrimSpace(match.PolicyID))
+		}
+		sort.Strings(ids)
+		return nil, false, fmt.Errorf("multiple egress auth policies match response: %s", strings.Join(ids, ", "))
+	}
+	return resolvePolicy(matches[0], ""), true, nil
+}
+
 func (c *Catalog) policy(policyID string) (policyConfig, bool) {
 	if c == nil {
 		return policyConfig{}, false
@@ -134,6 +204,16 @@ func resolvePolicy(policy policyConfig, materializationKey string) *authv1.GetEg
 		HeadersToUpstreamOnAllow:   requestNames,
 		HeadersToDownstreamOnAllow: responseNames,
 		HeadersToDownstreamOnDeny:  downstreamDenyHeaders(responseNames),
+		CredentialId:               strings.TrimSpace(materialization.CredentialID),
+		Source: &authv1.EgressAuthPolicySource{
+			Principals:      normalizedStrings(policy.Source.Principals),
+			ServiceAccounts: normalizedStrings(policy.Source.ServiceAccounts),
+		},
+		Target: &authv1.EgressAuthPolicyTarget{
+			Hosts:        normalizedHosts(policy.Target.Hosts),
+			PathPrefixes: normalizedStrings(policy.Target.PathPrefixes),
+			Methods:      normalizedMethods(policy.Target.Methods),
+		},
 	}
 }
 
@@ -237,6 +317,208 @@ func hasHeader(values []string, header string) bool {
 		}
 	}
 	return false
+}
+
+func policyHasRequestMatch(policy policyConfig) bool {
+	if !policyHasMatch(policy) {
+		return false
+	}
+	for _, materialization := range policy.Materializations {
+		if len(normalizeRules(materialization.RequestReplacementRules)) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func policyHasResponseMatch(policy policyConfig) bool {
+	if !policyHasMatch(policy) {
+		return false
+	}
+	for _, materialization := range policy.Materializations {
+		if len(normalizeRules(materialization.ResponseReplacementRules)) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func policyHasMatch(policy policyConfig) bool {
+	return len(normalizedStrings(policy.Source.Principals)) > 0 ||
+		len(normalizedStrings(policy.Source.ServiceAccounts)) > 0 ||
+		len(normalizedHosts(policy.Target.Hosts)) > 0 ||
+		len(normalizedStrings(policy.Target.PathPrefixes)) > 0 ||
+		len(normalizedMethods(policy.Target.Methods)) > 0
+}
+
+func policyMatchesRequest(policy policyConfig, sourcePrincipal string, targetHost string, targetPath string, method string) bool {
+	return sourceMatches(policy.Source, sourcePrincipal) &&
+		targetMatches(policy.Target, targetHost, targetPath, method)
+}
+
+func sourceMatches(source policySourceConfig, sourcePrincipal string) bool {
+	principals := normalizedPrincipals(source.Principals)
+	serviceAccounts := normalizedStrings(source.ServiceAccounts)
+	if len(principals) == 0 && len(serviceAccounts) == 0 {
+		return true
+	}
+	principal := normalizePrincipal(sourcePrincipal)
+	if principal == "" {
+		return false
+	}
+	if len(principals) > 0 {
+		for _, allowed := range principals {
+			if allowed == principal {
+				return true
+			}
+		}
+	}
+	if len(serviceAccounts) > 0 {
+		account := serviceAccountFromPrincipal(principal)
+		for _, allowed := range serviceAccounts {
+			if allowed == account {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func targetMatches(target policyTargetConfig, targetHost string, targetPath string, method string) bool {
+	return hostMatches(target.Hosts, targetHost) &&
+		pathMatches(target.PathPrefixes, targetPath) &&
+		methodMatches(target.Methods, method)
+}
+
+func hostMatches(allowedHosts []string, targetHost string) bool {
+	hosts := normalizedHosts(allowedHosts)
+	if len(hosts) == 0 {
+		return true
+	}
+	targetHost = normalizeHost(targetHost)
+	if targetHost == "" {
+		return false
+	}
+	for _, allowed := range hosts {
+		if allowed == targetHost {
+			return true
+		}
+		if strings.HasPrefix(allowed, "*.") && strings.HasSuffix(targetHost, strings.TrimPrefix(allowed, "*")) {
+			return true
+		}
+	}
+	return false
+}
+
+func pathMatches(prefixes []string, targetPath string) bool {
+	prefixes = normalizedStrings(prefixes)
+	if len(prefixes) == 0 {
+		return true
+	}
+	targetPath = strings.TrimSpace(targetPath)
+	if targetPath == "" {
+		targetPath = "/"
+	}
+	for _, prefix := range prefixes {
+		if prefix == "/" || strings.HasPrefix(targetPath, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+func methodMatches(methods []string, method string) bool {
+	methods = normalizedMethods(methods)
+	if len(methods) == 0 {
+		return true
+	}
+	method = strings.ToUpper(strings.TrimSpace(method))
+	for _, allowed := range methods {
+		if allowed == method {
+			return true
+		}
+	}
+	return false
+}
+
+func normalizedStrings(values []string) []string {
+	seen := map[string]struct{}{}
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		out = append(out, value)
+	}
+	sort.Strings(out)
+	return out
+}
+
+func normalizedMethods(values []string) []string {
+	out := normalizedStrings(values)
+	for index, value := range out {
+		out[index] = strings.ToUpper(value)
+	}
+	sort.Strings(out)
+	return out
+}
+
+func normalizedHosts(values []string) []string {
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		if host := normalizeHost(value); host != "" {
+			out = append(out, host)
+		}
+	}
+	return sortedUniqueHeaders(out)
+}
+
+func normalizedPrincipals(values []string) []string {
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		if principal := normalizePrincipal(value); principal != "" {
+			out = append(out, principal)
+		}
+	}
+	return sortedUniqueHeaders(out)
+}
+
+func normalizeHost(value string) string {
+	value = strings.ToLower(strings.TrimSpace(value))
+	value = strings.TrimPrefix(value, "https://")
+	value = strings.TrimPrefix(value, "http://")
+	if index := strings.Index(value, "/"); index >= 0 {
+		value = value[:index]
+	}
+	if index := strings.LastIndex(value, ":"); index > 0 && !strings.Contains(value[:index], ":") {
+		value = value[:index]
+	}
+	return strings.Trim(value, "[]")
+}
+
+func normalizePrincipal(value string) string {
+	value = strings.TrimSpace(value)
+	value = strings.TrimPrefix(value, "spiffe://")
+	return value
+}
+
+func serviceAccountFromPrincipal(principal string) string {
+	parts := strings.Split(normalizePrincipal(principal), "/")
+	for index := 0; index+3 < len(parts); index++ {
+		if parts[index] == "ns" && parts[index+2] == "sa" {
+			namespace := strings.TrimSpace(parts[index+1])
+			serviceAccount := strings.TrimSpace(parts[index+3])
+			if namespace != "" && serviceAccount != "" {
+				return namespace + "/" + serviceAccount
+			}
+		}
+	}
+	return ""
 }
 
 func fallbackPolicy(policyID string, kind credentialv1.CredentialKind, protocol string) policyConfig {

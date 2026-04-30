@@ -1,0 +1,128 @@
+---
+providerBindings:
+- modelDiscovery:
+    activeDiscovery:
+      operation:
+        path: models
+        responseKind: MODEL_CATALOG_DISCOVERY_RESPONSE_KIND_OPENAI_MODELS
+      surfaceIds:
+      - openai-compatible
+    authorityPriority: 650
+    collectorId: fireworks-ai-models
+  observability:
+    profiles:
+    - displayName: Fireworks Serverless Rate Limits
+      metricQueries:
+      - displayName: Fireworks Serverless Rate Limit Remaining
+        language: METRIC_QUERY_LANGUAGE_PROMQL
+        metricNames:
+        - gen_ai.provider.runtime.rate_limit.remaining
+        queryId: fireworks_serverless_ratelimit_remaining
+        resultKind: METRIC_QUERY_RESULT_KIND_VECTOR
+        statement: max by (vendor_id, access_target_id, provider_id, resource) (gen_ai_provider_runtime_rate_limit_remaining{vendor_id="fireworks-ai"})
+      - displayName: Fireworks Serverless Rate Limit Limit
+        language: METRIC_QUERY_LANGUAGE_PROMQL
+        metricNames:
+        - gen_ai.provider.runtime.rate_limit.limit
+        queryId: fireworks_serverless_ratelimit_limit
+        resultKind: METRIC_QUERY_RESULT_KIND_VECTOR
+        statement: max by (vendor_id, access_target_id, provider_id, resource) (gen_ai_provider_runtime_rate_limit_limit{vendor_id="fireworks-ai"})
+      metrics:
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable access target identifier.
+          name: access_target_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Serverless rate limit resource type.
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        category: OBSERVABILITY_METRIC_CATEGORY_RATE_LIMIT
+        description: Fireworks serverless rate limit ceiling for one resource type.
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.runtime.rate_limit.limit
+        unit: '{count}'
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable access target identifier.
+          name: access_target_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Serverless rate limit resource type.
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        category: OBSERVABILITY_METRIC_CATEGORY_RATE_LIMIT
+        description: Fireworks remaining serverless rate limit for one resource type.
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.runtime.rate_limit.remaining
+        unit: '{count}'
+      passiveHttp:
+        capturePoint: TELEMETRY_CAPTURE_POINT_EGRESS
+        emitAccessLog: true
+        redaction:
+          dropRawHeaders: true
+          redactHeaders:
+          - authorization
+          - cookie
+          - set-cookie
+        transforms:
+        - headerName: x-ratelimit-limit-requests
+          labels:
+          - name: resource
+            value: requests
+          metricName: gen_ai.provider.runtime.rate_limit.limit
+          source: HTTP_HEADER_SOURCE_RESPONSE
+          valueType: HEADER_VALUE_TYPE_INT64
+        - headerName: x-ratelimit-remaining-requests
+          labels:
+          - name: resource
+            value: requests
+          metricName: gen_ai.provider.runtime.rate_limit.remaining
+          source: HTTP_HEADER_SOURCE_RESPONSE
+          valueType: HEADER_VALUE_TYPE_INT64
+        - headerName: x-ratelimit-limit-tokens-prompt
+          labels:
+          - name: resource
+            value: tokens_prompt
+          metricName: gen_ai.provider.runtime.rate_limit.limit
+          source: HTTP_HEADER_SOURCE_RESPONSE
+          valueType: HEADER_VALUE_TYPE_INT64
+        - headerName: x-ratelimit-remaining-tokens-prompt
+          labels:
+          - name: resource
+            value: tokens_prompt
+          metricName: gen_ai.provider.runtime.rate_limit.remaining
+          source: HTTP_HEADER_SOURCE_RESPONSE
+          valueType: HEADER_VALUE_TYPE_INT64
+        - headerName: x-ratelimit-limit-tokens-generated
+          labels:
+          - name: resource
+            value: tokens_generated
+          metricName: gen_ai.provider.runtime.rate_limit.limit
+          source: HTTP_HEADER_SOURCE_RESPONSE
+          valueType: HEADER_VALUE_TYPE_INT64
+        - headerName: x-ratelimit-remaining-tokens-generated
+          labels:
+          - name: resource
+            value: tokens_generated
+          metricName: gen_ai.provider.runtime.rate_limit.remaining
+          source: HTTP_HEADER_SOURCE_RESPONSE
+          valueType: HEADER_VALUE_TYPE_INT64
+      profileId: fireworks_serverless_ratelimits
+  providerBinding:
+    surfaceId: openai-compatible
+  surfaceTemplates:
+  - runtime:
+      api:
+        baseUrl: https://api.fireworks.ai/inference/v1
+        protocol: PROTOCOL_OPENAI_COMPATIBLE
+      displayName: Fireworks AI OpenAI Compatible
+    surfaceId: openai-compatible

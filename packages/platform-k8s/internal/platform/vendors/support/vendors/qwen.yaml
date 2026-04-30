@@ -1,0 +1,11 @@
+---
+providerBindings:
+- providerBinding:
+    surfaceId: openai-compatible
+  surfaceTemplates:
+  - runtime:
+      api:
+        baseUrl: https://dashscope.aliyuncs.com/compatible-mode/v1
+        protocol: PROTOCOL_OPENAI_COMPATIBLE
+      displayName: Qwen OpenAI Compatible
+    surfaceId: openai-compatible

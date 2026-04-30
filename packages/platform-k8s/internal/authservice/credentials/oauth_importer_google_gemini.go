@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	credentialcontract "code-code.internal/platform-contract/credential"
-	"code-code.internal/platform-k8s/internal/supportservice/clidefinitions/codeassist"
+	"code-code.internal/platform-k8s/internal/platform/codeassist"
 )
 
 func init() {

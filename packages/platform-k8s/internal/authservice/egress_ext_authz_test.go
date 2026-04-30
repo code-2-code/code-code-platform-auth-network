@@ -6,8 +6,6 @@ import (
 
 	credentialv1 "code-code.internal/go-contract/credential/v1"
 	managementv1 "code-code.internal/go-contract/platform/management/v1"
-	providerv1 "code-code.internal/go-contract/provider/v1"
-	"code-code.internal/platform-k8s/internal/egressauth"
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoyauthv3 "github.com/envoyproxy/go-control-plane/envoy/service/auth/v3"
 	typev3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
@@ -27,7 +25,8 @@ func TestEgressExtAuthzCheckInjectsRuntimeRequestHeader(t *testing.T) {
 		},
 	}
 	server := &Server{
-		agentSessions: runtimeContext,
+		runtimeNamespace: "code-code-runs",
+		agentSessions:    runtimeContext,
 		credentialResolver: &fakeCredentialResolver{
 			credential: &credentialv1.ResolvedCredential{
 				GrantId: "cred-1",
@@ -63,7 +62,7 @@ func TestEgressExtAuthzCheckInjectsRuntimeRequestHeader(t *testing.T) {
 	}
 }
 
-func TestEgressExtAuthzCheckInjectsProviderSurfaceRequestHeader(t *testing.T) {
+func TestEgressExtAuthzCheckInjectsAuthPolicyRequestHeaderBySPIFFE(t *testing.T) {
 	resolver := &fakeCredentialResolver{
 		credential: &credentialv1.ResolvedCredential{
 			GrantId: "cred-1",
@@ -74,22 +73,39 @@ func TestEgressExtAuthzCheckInjectsProviderSurfaceRequestHeader(t *testing.T) {
 		},
 	}
 	server := &Server{
-		namespace:          "code-code",
-		providers:          fakeProviderStore{providers: []*providerv1.Provider{providerWithSurface("provider-1", "surface-1", "cred-1", "https://api.example.test/v1")}},
+		runtimeNamespace:   "code-code-runs",
 		credentialResolver: resolver,
+		headerRewritePolicies: mustHeaderRewritePolicies(t, `
+policies:
+  - policyId: test.workload-bearer
+    source:
+      serviceAccounts:
+        - code-code/platform-observability-runner
+    target:
+      hosts:
+        - api.example.test
+      pathPrefixes:
+        - /v1
+      methods:
+        - GET
+    materializations:
+      - materializationKey: test.workload-bearer
+        credentialId: cred-1
+        requestReplacementRules:
+          - mode: bearer
+            headerName: authorization
+            materialKey: access_token
+            headerValuePrefix: Bearer
+`),
 	}
 
 	response, err := NewEgressExtAuthzServer(server).Check(context.Background(), extAuthzCheckRequestWithPrincipalAndHeaders(
 		"10.0.0.12",
-		"spiffe://cluster.local/ns/code-code/sa/platform-provider-service",
+		"spiffe://cluster.local/ns/code-code/sa/platform-observability-runner",
 		"api.example.test:443",
 		"/v1/models",
 		map[string]string{
-			egressauth.HeaderProviderSurfaceBindingID: "surface-1",
-			egressauth.HeaderRequestHeaderNames:       "authorization",
-			egressauth.HeaderHeaderValuePrefix:        "Bearer",
-			egressauth.HeaderRequestHeaderRulesJSON:   `[{"mode":"bearer","headerName":"authorization"}]`,
-			"authorization":                           "Bearer stale-client-token",
+			"authorization": "Bearer stale-client-token",
 		},
 	))
 	if err != nil {
@@ -111,9 +127,6 @@ func TestEgressExtAuthzCheckInjectsProviderSurfaceRequestHeader(t *testing.T) {
 	if got, want := headers[0].GetHeader().GetValue(), "Bearer surface-token"; got != want {
 		t.Fatalf("authorization = %q, want %q", got, want)
 	}
-	if !containsHeaderName(response.GetOkResponse().GetHeadersToRemove(), egressauth.HeaderProviderSurfaceBindingID) {
-		t.Fatalf("headers_to_remove = %v, want %s", response.GetOkResponse().GetHeadersToRemove(), egressauth.HeaderProviderSurfaceBindingID)
-	}
 }
 
 func TestEgressExtAuthzCheckUsesSourcePrincipalNamespace(t *testing.T) {
@@ -128,7 +141,8 @@ func TestEgressExtAuthzCheckUsesSourcePrincipalNamespace(t *testing.T) {
 		},
 	}
 	server := &Server{
-		agentSessions: runtimeContext,
+		runtimeNamespace: "code-code-runs",
+		agentSessions:    runtimeContext,
 		credentialResolver: &fakeCredentialResolver{
 			credential: &credentialv1.ResolvedCredential{
 				GrantId: "cred-1",
@@ -173,7 +187,7 @@ func TestEgressExtAuthzCheckSkipsRuntimeLookupOutsideRuntimeNamespace(t *testing
 		runtimeNamespace:      "code-code-runs",
 		agentSessions:         runtimeContext,
 		credentialResolver:    &fakeCredentialResolver{},
-		headerRewritePolicies: nil,
+		headerRewritePolicies: mustHeaderRewritePolicies(t, `policies: []`),
 	}
 
 	response, err := NewEgressExtAuthzServer(server).Check(context.Background(), extAuthzCheckRequestWithPrincipal(
@@ -333,8 +347,19 @@ func extAuthzCheckRequestWithPrincipalAndHeaders(sourceIP string, principal stri
 		Source: source,
 		Request: &envoyauthv3.AttributeContext_Request{Http: &envoyauthv3.AttributeContext_HttpRequest{
 			Host:    host,
+			Method:  "GET",
 			Path:    path,
 			Headers: headers,
 		}},
 	}}
+}
+
+func headerValueOptionValue(headers []*corev3.HeaderValueOption, name string) string {
+	name = normalizeHTTPHeaderName(name)
+	for _, header := range headers {
+		if normalizeHTTPHeaderName(header.GetHeader().GetKey()) == name {
+			return header.GetHeader().GetValue()
+		}
+	}
+	return ""
 }

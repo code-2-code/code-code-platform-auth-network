@@ -9,7 +9,7 @@ import (
 	credentialv1 "code-code.internal/go-contract/credential/v1"
 	credentialcontract "code-code.internal/platform-contract/credential"
 	platformv1alpha1 "code-code.internal/platform-k8s/api/v1alpha1"
-	clioauth "code-code.internal/platform-k8s/internal/supportservice/clidefinitions/oauth"
+	clioauth "code-code.internal/platform-k8s/internal/platform/clidefinitions/oauth"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

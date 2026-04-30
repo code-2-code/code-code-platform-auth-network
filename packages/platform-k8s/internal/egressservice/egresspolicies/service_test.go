@@ -44,8 +44,8 @@ func TestDeleteExternalAccessSetRemovesOnlyRequestedSet(t *testing.T) {
 	if got, want := result.RemovedServiceRule, int32(1); got != want {
 		t.Fatalf("RemovedServiceRule = %d, want %d", got, want)
 	}
-	if got, want := result.RemovedHTTPRoute, int32(1); got != want {
-		t.Fatalf("RemovedHTTPRoute = %d, want %d", got, want)
+	if got, want := result.RemovedHTTPInspectionRule, int32(1); got != want {
+		t.Fatalf("RemovedHTTPInspectionRule = %d, want %d", got, want)
 	}
 
 	stored := loadStoredPolicy(t, service.client)
@@ -73,8 +73,8 @@ func TestDeleteExternalAccessSetIsIdempotentForMissingSet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("DeleteExternalAccessSet() error = %v", err)
 	}
-	if result.RemovedExternalRule != 0 || result.RemovedServiceRule != 0 || result.RemovedHTTPRoute != 0 {
-		t.Fatalf("removed counts = external:%d service:%d http:%d, want all zero", result.RemovedExternalRule, result.RemovedServiceRule, result.RemovedHTTPRoute)
+	if result.RemovedExternalRule != 0 || result.RemovedServiceRule != 0 || result.RemovedHTTPInspectionRule != 0 {
+		t.Fatalf("removed counts = external:%d service:%d http:%d, want all zero", result.RemovedExternalRule, result.RemovedServiceRule, result.RemovedHTTPInspectionRule)
 	}
 	stored := loadStoredPolicy(t, service.client)
 	if got, want := len(stored.GetAccessSets()), 1; got != want {
@@ -161,10 +161,10 @@ func testTLSAccessSet(accessSetID, destinationID, host, serviceAccount string) *
 func testHTTPSAccessSet(accessSetID, destinationID, host, serviceAccount string) *egressv1.ExternalAccessSet {
 	accessSet := testTLSAccessSet(accessSetID, destinationID, host, serviceAccount)
 	accessSet.ExternalRules[0].Protocol = egressv1.EgressProtocol_EGRESS_PROTOCOL_HTTPS
-	accessSet.HttpRoutes = []*egressv1.HttpEgressRoute{{
-		RouteId:       accessSetID + ".route",
-		DisplayName:   "L7 smoke",
-		DestinationId: destinationID,
+	accessSet.HttpInspectionRules = []*egressv1.HttpInspectionRule{{
+		InspectionRuleId: accessSetID + ".route",
+		DisplayName:      "L7 smoke",
+		DestinationId:    destinationID,
 		Matches: []*egressv1.HttpRouteMatch{{
 			PathPrefixes: []string{"/headers"},
 			Methods:      []string{"GET"},

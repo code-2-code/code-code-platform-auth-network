@@ -7,7 +7,7 @@ import (
 	credentialcontract "code-code.internal/platform-contract/credential"
 	"code-code.internal/platform-k8s/internal/authservice/oauth"
 	"code-code.internal/platform-k8s/internal/platform/outboundhttp"
-	clisupport "code-code.internal/platform-k8s/internal/supportservice/clidefinitions/support"
+	clisupport "code-code.internal/platform-k8s/internal/platform/clidefinitions/support"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 

@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"log"
 	"log/slog"
 	"net"
 	"net/http"
@@ -23,6 +22,7 @@ import (
 	"code-code.internal/platform-k8s/internal/platform/telemetry"
 	"code-code.internal/platform-k8s/internal/platform/temporalruntime"
 	"code-code.internal/platform-k8s/internal/platform/triggerhttp"
+	"code-code.internal/platform-k8s/internal/supportservice/credentialpolicy"
 	envoyauthv3 "github.com/envoyproxy/go-control-plane/envoy/service/auth/v3"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	temporalworker "go.temporal.io/sdk/worker"
@@ -59,7 +59,7 @@ func main() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := telemetryShutdown(shutdownCtx); err != nil {
-			log.Printf("shutdown telemetry failed: %v", err)
+			slog.Error("shutdown telemetry failed", "error", err)
 		}
 	}()
 	config := ctrl.GetConfigOrDie()
@@ -71,6 +71,10 @@ func main() {
 	outbox, err := domainevents.NewOutbox(statePool, "platform-auth-service")
 	must(err)
 	credentialEncryptor, err := credentials.NewAESGCMCredentialMaterialEncryptorFromBase64(credentialEncryptionKeyID, credentialEncryptionKey)
+	must(err)
+	materialReadPolicy, err := credentialpolicy.NewMaterialReadAuthorizer()
+	must(err)
+	sessionInputForms, err := credentialpolicy.NewSessionInputFormResolver()
 	must(err)
 	agentRuntimeConn, err := grpc.NewClient(agentRuntimeAddr, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithStatsHandler(otelgrpc.NewClientHandler()))
 	must(err)
@@ -84,6 +88,8 @@ func main() {
 		StatePool:             statePool,
 		DomainOutbox:          outbox,
 		CredentialEncryptor:   credentialEncryptor,
+		MaterialReadPolicy:    materialReadPolicy,
+		SessionInputForms:     sessionInputForms,
 		HostedCallbackBaseURL: oauthCallbackBaseURL,
 		AgentSessionConn:      agentRuntimeConn,
 	})
@@ -118,7 +124,7 @@ func main() {
 	})
 	must(err)
 	if internalActionToken == "" {
-		log.Printf("internal action endpoints are disabled (env PLATFORM_AUTH_SERVICE_INTERNAL_ACTION_TOKEN is empty)")
+		slog.Info("internal action endpoints are disabled (env PLATFORM_AUTH_SERVICE_INTERNAL_ACTION_TOKEN is empty)")
 	}
 
 	listener, err := net.Listen("tcp", grpcAddr)
@@ -151,7 +157,7 @@ func main() {
 		defer publisher.Close()
 		go func() { _ = publisher.Run(ctx) }()
 		must(server.StartDomainEventConsumers(ctx, statePool, domainEventsNATSURL))
-		log.Printf("domain event bus enabled (nats=%s)", domainEventsNATSURL)
+		slog.Info("domain event bus enabled", "nats", domainEventsNATSURL)
 	}
 	serveErr := make(chan error, 2)
 	go func() {
@@ -177,7 +183,7 @@ func main() {
 		_ = httpServer.Shutdown(shutdownCtx)
 	}()
 
-	log.Printf("platform-auth-service starting (namespace=%s grpc=%s http=%s temporal=%s/%s)", namespace, grpcAddr, httpAddr, temporalConfig.Address, temporalConfig.TaskQueue)
+	slog.Info("platform-auth-service starting", "namespace", namespace, "grpc", grpcAddr, "http", httpAddr, "temporal", temporalConfig.Address+"/"+temporalConfig.TaskQueue)
 	select {
 	case err := <-serveErr:
 		must(err)
@@ -205,6 +211,7 @@ func firstEnv(keys ...string) string {
 
 func must(err error) {
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("fatal error", "error", err)
+		os.Exit(1)
 	}
 }

@@ -1,0 +1,361 @@
+---
+providerBindings:
+- modelDiscovery:
+    activeDiscovery:
+      surfaceIds:
+      - gemini
+    authorityPriority: 700
+    collectorId: google-models
+  observability:
+    profiles:
+    - activeQuery:
+        collectorId: google-aistudio-quotas
+        materialReadFields:
+        - project_id
+        inputForm:
+          actionLabel: Update AI Studio Session
+          description: Paste AI Studio browser session fields and the quota project
+            number from ListModelRateLimits.
+          fields:
+          - control: ACTIVE_QUERY_INPUT_CONTROL_TEXTAREA
+            description: Copy the Cookie request header from ListModelRateLimits.
+            fieldId: cookie
+            label: Request Cookie
+            persistence: ACTIVE_QUERY_INPUT_PERSISTENCE_STORED_MATERIAL
+            placeholder: SID=...; HSID=...; SSID=...; SAPISID=...; __Secure-1PAPISID=...
+            required: true
+            sensitive: true
+          - control: ACTIVE_QUERY_INPUT_CONTROL_TEXTAREA
+            description: Optional. Paste Set-Cookie response headers from the same
+              request; they will be merged into Request Cookie before saving. Request
+              Cookie must be included in the same submission.
+            fieldId: response_set_cookie
+            label: Response Set-Cookie
+            persistence: ACTIVE_QUERY_INPUT_PERSISTENCE_TRANSIENT
+            placeholder: Paste one or more Set-Cookie response headers, one per line.
+            targetFieldId: cookie
+            transform: ACTIVE_QUERY_INPUT_VALUE_TRANSFORM_MERGE_SET_COOKIE
+          - control: ACTIVE_QUERY_INPUT_CONTROL_PASSWORD
+            description: Optional. Copy the Authorization request header from the
+              same ListModelRateLimits request. Leave blank to let the service derive
+              it from Cookie.
+            fieldId: authorization
+            label: Request Authorization
+            persistence: ACTIVE_QUERY_INPUT_PERSISTENCE_STORED_MATERIAL
+            placeholder: SAPISIDHASH ...
+            sensitive: true
+          - control: ACTIVE_QUERY_INPUT_CONTROL_PASSWORD
+            fieldId: page_api_key
+            label: X-Goog-Api-Key
+            persistence: ACTIVE_QUERY_INPUT_PERSISTENCE_STORED_MATERIAL
+            placeholder: AIzaSy...
+            required: true
+            sensitive: true
+          - control: ACTIVE_QUERY_INPUT_CONTROL_TEXT
+            description: Use the projects/<number> value from the ListModelRateLimits
+              request body. gen-lang-client-* is accepted as a fallback client project
+              id.
+            fieldId: project_id
+            label: Project number
+            persistence: ACTIVE_QUERY_INPUT_PERSISTENCE_STORED_MATERIAL
+            placeholder: 946397203396 or projects/946397203396
+            required: true
+          schemaId: google-ai-studio-session
+          title: Update AI Studio Session
+        minimumPollInterval: 300s
+      displayName: Google AI Studio Quota
+      metrics:
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable access target identifier.
+          name: access_target_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Provider model identifier.
+          name: model_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Google AI Studio model category key.
+          name: model_category
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization identifier.
+          name: org_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization name.
+          name: org_name
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider region identifier.
+          name: region_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limited resource type (requests, tokens, etc).
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limit time window (minute, hour, day).
+          name: window
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Whether the model catalog entry exposes preview aliases.
+          name: preview
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Quota dimension key (RPM, TPM, etc).
+          name: quota_type
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        category: OBSERVABILITY_METRIC_CATEGORY_QUOTA
+        description: Google AI Studio quota limit for one model and quota window.
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.quota.limit
+        unit: "1"
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable access target identifier.
+          name: access_target_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Provider model identifier.
+          name: model_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Google AI Studio model category key.
+          name: model_category
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limited resource type (requests, tokens, etc).
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limit time window (minute, hour, day).
+          name: window
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Quota dimension key (RPM, TPM, etc).
+          name: quota_type
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        category: OBSERVABILITY_METRIC_CATEGORY_QUOTA
+        description: Google AI Studio remaining quota value for one model and quota
+          window.
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.quota.remaining
+        unit: "1"
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable access target identifier.
+          name: access_target_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Provider model identifier.
+          name: model_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Google AI Studio model category key.
+          name: model_category
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limited resource type (requests, tokens, etc).
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limit time window (minute, hour, day).
+          name: window
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Quota dimension key (RPM, TPM, etc).
+          name: quota_type
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        category: OBSERVABILITY_METRIC_CATEGORY_QUOTA
+        description: Google AI Studio quota reset timestamp per model and quota window.
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.quota.reset.timestamp.seconds
+        unit: "1"
+      profileId: aistudio_quota
+  providerBinding:
+    surfaceId: gemini
+  providerCard:
+    enabled: true
+  surfaceTemplates:
+  - runtime:
+      api:
+        baseUrl: https://generativelanguage.googleapis.com/v1beta
+        protocol: PROTOCOL_GEMINI
+      displayName: Google Gemini
+    surfaceId: gemini
+- modelDiscovery:
+    activeDiscovery:
+      surfaceIds:
+      - openai-compatible
+    authorityPriority: 700
+    collectorId: google-models
+  observability:
+    profiles:
+    - activeQuery:
+        collectorId: google-aistudio-quotas
+        materialReadFields:
+        - project_id
+        inputForm:
+          actionLabel: Update AI Studio Session
+          description: Paste AI Studio browser session fields and the quota project
+            number from ListModelRateLimits.
+          fields:
+          - control: ACTIVE_QUERY_INPUT_CONTROL_TEXTAREA
+            description: Copy the Cookie request header from ListModelRateLimits.
+            fieldId: cookie
+            label: Request Cookie
+            persistence: ACTIVE_QUERY_INPUT_PERSISTENCE_STORED_MATERIAL
+            placeholder: SID=...; HSID=...; SSID=...; SAPISID=...; __Secure-1PAPISID=...
+            required: true
+            sensitive: true
+          - control: ACTIVE_QUERY_INPUT_CONTROL_TEXTAREA
+            description: Optional. Paste Set-Cookie response headers from the same
+              request; they will be merged into Request Cookie before saving.
+            fieldId: response_set_cookie
+            label: Response Set-Cookie
+            persistence: ACTIVE_QUERY_INPUT_PERSISTENCE_TRANSIENT
+            placeholder: Paste one or more Set-Cookie response headers, one per line.
+            targetFieldId: cookie
+            transform: ACTIVE_QUERY_INPUT_VALUE_TRANSFORM_MERGE_SET_COOKIE
+          - control: ACTIVE_QUERY_INPUT_CONTROL_PASSWORD
+            description: Optional. Copy the Authorization request header from the
+              same ListModelRateLimits request. Leave blank to let the service derive
+              it from Cookie.
+            fieldId: authorization
+            label: Request Authorization
+            persistence: ACTIVE_QUERY_INPUT_PERSISTENCE_STORED_MATERIAL
+            placeholder: SAPISIDHASH ...
+            sensitive: true
+          - control: ACTIVE_QUERY_INPUT_CONTROL_PASSWORD
+            fieldId: page_api_key
+            label: X-Goog-Api-Key
+            persistence: ACTIVE_QUERY_INPUT_PERSISTENCE_STORED_MATERIAL
+            placeholder: AIzaSy...
+            required: true
+            sensitive: true
+          - control: ACTIVE_QUERY_INPUT_CONTROL_TEXT
+            description: Use the projects/<number> value from the ListModelRateLimits
+              request body. gen-lang-client-* is accepted as a fallback client project
+              id.
+            fieldId: project_id
+            label: Project number
+            persistence: ACTIVE_QUERY_INPUT_PERSISTENCE_STORED_MATERIAL
+            placeholder: 946397203396 or projects/946397203396
+            required: true
+          schemaId: google-ai-studio-session
+          title: Update AI Studio Session
+        minimumPollInterval: 300s
+      displayName: Google AI Studio Quota
+      metrics:
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable access target identifier.
+          name: access_target_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Provider model identifier.
+          name: model_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Google AI Studio model category key.
+          name: model_category
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization identifier.
+          name: org_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization name.
+          name: org_name
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider region identifier.
+          name: region_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limited resource type (requests, tokens, etc).
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limit time window (minute, hour, day).
+          name: window
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Whether the model catalog entry exposes preview aliases.
+          name: preview
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Quota dimension key (RPM, TPM, etc).
+          name: quota_type
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        category: OBSERVABILITY_METRIC_CATEGORY_QUOTA
+        description: Google AI Studio quota limit for one model and quota window.
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.quota.limit
+        unit: "1"
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable access target identifier.
+          name: access_target_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Provider model identifier.
+          name: model_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Google AI Studio model category key.
+          name: model_category
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limited resource type (requests, tokens, etc).
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limit time window (minute, hour, day).
+          name: window
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Quota dimension key (RPM, TPM, etc).
+          name: quota_type
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        category: OBSERVABILITY_METRIC_CATEGORY_QUOTA
+        description: Google AI Studio remaining quota value for one model and quota
+          window.
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.quota.remaining
+        unit: "1"
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable access target identifier.
+          name: access_target_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Provider model identifier.
+          name: model_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Google AI Studio model category key.
+          name: model_category
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limited resource type (requests, tokens, etc).
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limit time window (minute, hour, day).
+          name: window
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Quota dimension key (RPM, TPM, etc).
+          name: quota_type
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        category: OBSERVABILITY_METRIC_CATEGORY_QUOTA
+        description: Google AI Studio quota reset timestamp per model and quota window.
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.quota.reset.timestamp.seconds
+        unit: "1"
+      profileId: aistudio_quota
+  providerBinding:
+    surfaceId: openai-compatible
+  providerCard:
+    enabled: true
+  surfaceTemplates:
+  - runtime:
+      api:
+        baseUrl: https://generativelanguage.googleapis.com/v1beta/openai
+        protocol: PROTOCOL_OPENAI_COMPATIBLE
+      displayName: Google Gemini OpenAI Compatible
+    surfaceId: openai-compatible

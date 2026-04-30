@@ -1,0 +1,169 @@
+---
+providerBindings:
+- modelDiscovery:
+    activeDiscovery:
+      operation:
+        path: models
+        responseKind: MODEL_CATALOG_DISCOVERY_RESPONSE_KIND_OPENAI_MODELS
+      surfaceIds:
+      - openai-compatible
+    authorityPriority: 650
+    collectorId: modelscope-models
+  observability:
+    profiles:
+    - displayName: ModelScope Daily Quota
+      metrics:
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable access target identifier.
+          name: access_target_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Provider model identifier.
+          name: model_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization identifier.
+          name: org_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization name.
+          name: org_name
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider region identifier.
+          name: region_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limited resource type (requests, tokens, etc).
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Quota scope (user or model).
+          name: scope
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limit time window (minute, hour, day).
+          name: window
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider project or account tier.
+          name: tier
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Whether the model catalog entry exposes preview aliases.
+          name: preview
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Quota dimension key (RPM, TPM, etc).
+          name: quota_type
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        category: OBSERVABILITY_METRIC_CATEGORY_QUOTA
+        description: ModelScope daily request limit (user total or per-model).
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.runtime.quota.limit
+        unit: "1"
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable access target identifier.
+          name: access_target_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Provider model identifier.
+          name: model_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization identifier.
+          name: org_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider organization name.
+          name: org_name
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider region identifier.
+          name: region_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limited resource type (requests, tokens, etc).
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Quota scope (user or model).
+          name: scope
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limit time window (minute, hour, day).
+          name: window
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Provider project or account tier.
+          name: tier
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Whether the model catalog entry exposes preview aliases.
+          name: preview
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Quota dimension key (RPM, TPM, etc).
+          name: quota_type
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        category: OBSERVABILITY_METRIC_CATEGORY_QUOTA
+        description: ModelScope daily remaining requests (user total or per-model).
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.runtime.quota.remaining
+        unit: "1"
+      passiveHttp:
+        capturePoint: TELEMETRY_CAPTURE_POINT_EGRESS
+        emitAccessLog: true
+        redaction:
+          dropRawHeaders: true
+          redactHeaders:
+          - authorization
+          - cookie
+          - set-cookie
+        transforms:
+        - headerName: modelscope-ratelimit-limit-requests
+          labels:
+          - name: scope
+            value: user
+          - name: window
+            value: day
+          - name: resource
+            value: requests
+          metricName: gen_ai.provider.runtime.quota.limit
+          source: HTTP_HEADER_SOURCE_RESPONSE
+          valueType: HEADER_VALUE_TYPE_INT64
+        - headerName: modelscope-ratelimit-remaining-requests
+          labels:
+          - name: scope
+            value: user
+          - name: window
+            value: day
+          - name: resource
+            value: requests
+          metricName: gen_ai.provider.runtime.quota.remaining
+          source: HTTP_HEADER_SOURCE_RESPONSE
+          valueType: HEADER_VALUE_TYPE_INT64
+        - headerName: modelscope-ratelimit-limit-model-requests
+          labels:
+          - name: scope
+            value: model
+          - name: window
+            value: day
+          - name: resource
+            value: requests
+          metricName: gen_ai.provider.runtime.quota.limit
+          source: HTTP_HEADER_SOURCE_RESPONSE
+          valueType: HEADER_VALUE_TYPE_INT64
+        - headerName: modelscope-ratelimit-remaining-model-requests
+          labels:
+          - name: scope
+            value: model
+          - name: window
+            value: day
+          - name: resource
+            value: requests
+          metricName: gen_ai.provider.runtime.quota.remaining
+          source: HTTP_HEADER_SOURCE_RESPONSE
+          valueType: HEADER_VALUE_TYPE_INT64
+      profileId: modelscope_quota
+  providerBinding:
+    surfaceId: openai-compatible
+  surfaceTemplates:
+  - runtime:
+      api:
+        baseUrl: https://api-inference.modelscope.cn/v1
+        protocol: PROTOCOL_OPENAI_COMPATIBLE
+      displayName: ModelScope OpenAI Compatible
+    surfaceId: openai-compatible

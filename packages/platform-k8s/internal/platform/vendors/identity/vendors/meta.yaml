@@ -1,0 +1,8 @@
+---
+aliases:
+- meta-llama
+description: Meta Llama model publisher.
+displayName: Meta
+iconUrl: https://about.meta.com/favicon.ico
+vendorId: meta
+websiteUrl: https://about.meta.com

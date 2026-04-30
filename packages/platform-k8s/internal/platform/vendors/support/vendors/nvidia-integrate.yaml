@@ -1,0 +1,183 @@
+---
+providerBindings:
+- modelDiscovery:
+    activeDiscovery:
+      surfaceIds:
+      - openai-compatible
+    authorityPriority: 650
+    collectorId: nvidia-integrate-models
+  observability:
+    profiles:
+    - displayName: NVIDIA Rate Limits
+      metrics:
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable access target identifier.
+          name: access_target_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Rate limit time window (default, minute, day).
+          name: window
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Rate limited resource type (requests, tokens).
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        category: OBSERVABILITY_METRIC_CATEGORY_RATE_LIMIT
+        description: NVIDIA rate limit ceiling for one time window and resource type.
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.runtime.rate_limit.limit
+        unit: "1"
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable access target identifier.
+          name: access_target_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Rate limit time window (default, minute, day).
+          name: window
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Rate limited resource type (requests, tokens).
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        category: OBSERVABILITY_METRIC_CATEGORY_RATE_LIMIT
+        description: NVIDIA remaining rate limit for one time window and resource
+          type.
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.runtime.rate_limit.remaining
+        unit: "1"
+      passiveHttp:
+        capturePoint: TELEMETRY_CAPTURE_POINT_EGRESS
+        emitAccessLog: true
+        redaction:
+          dropRawHeaders: true
+          redactHeaders:
+          - authorization
+          - cookie
+          - set-cookie
+        transforms:
+        - headerName: x-ratelimit-limit-requests
+          labels:
+          - name: window
+            value: default
+          - name: resource
+            value: requests
+          metricName: gen_ai.provider.runtime.rate_limit.limit
+          source: HTTP_HEADER_SOURCE_RESPONSE
+          valueType: HEADER_VALUE_TYPE_INT64
+        - headerName: x-ratelimit-remaining-requests
+          labels:
+          - name: window
+            value: default
+          - name: resource
+            value: requests
+          metricName: gen_ai.provider.runtime.rate_limit.remaining
+          source: HTTP_HEADER_SOURCE_RESPONSE
+          valueType: HEADER_VALUE_TYPE_INT64
+        - headerName: x-ratelimit-limit-requests-minute
+          labels:
+          - name: window
+            value: minute
+          - name: resource
+            value: requests
+          metricName: gen_ai.provider.runtime.rate_limit.limit
+          source: HTTP_HEADER_SOURCE_RESPONSE
+          valueType: HEADER_VALUE_TYPE_INT64
+        - headerName: x-ratelimit-remaining-requests-minute
+          labels:
+          - name: window
+            value: minute
+          - name: resource
+            value: requests
+          metricName: gen_ai.provider.runtime.rate_limit.remaining
+          source: HTTP_HEADER_SOURCE_RESPONSE
+          valueType: HEADER_VALUE_TYPE_INT64
+        - headerName: x-ratelimit-limit-requests-day
+          labels:
+          - name: window
+            value: day
+          - name: resource
+            value: requests
+          metricName: gen_ai.provider.runtime.rate_limit.limit
+          source: HTTP_HEADER_SOURCE_RESPONSE
+          valueType: HEADER_VALUE_TYPE_INT64
+        - headerName: x-ratelimit-remaining-requests-day
+          labels:
+          - name: window
+            value: day
+          - name: resource
+            value: requests
+          metricName: gen_ai.provider.runtime.rate_limit.remaining
+          source: HTTP_HEADER_SOURCE_RESPONSE
+          valueType: HEADER_VALUE_TYPE_INT64
+        - headerName: x-ratelimit-limit-tokens
+          labels:
+          - name: window
+            value: default
+          - name: resource
+            value: tokens
+          metricName: gen_ai.provider.runtime.rate_limit.limit
+          source: HTTP_HEADER_SOURCE_RESPONSE
+          valueType: HEADER_VALUE_TYPE_INT64
+        - headerName: x-ratelimit-remaining-tokens
+          labels:
+          - name: window
+            value: default
+          - name: resource
+            value: tokens
+          metricName: gen_ai.provider.runtime.rate_limit.remaining
+          source: HTTP_HEADER_SOURCE_RESPONSE
+          valueType: HEADER_VALUE_TYPE_INT64
+        - headerName: x-ratelimit-limit-tokens-minute
+          labels:
+          - name: window
+            value: minute
+          - name: resource
+            value: tokens
+          metricName: gen_ai.provider.runtime.rate_limit.limit
+          source: HTTP_HEADER_SOURCE_RESPONSE
+          valueType: HEADER_VALUE_TYPE_INT64
+        - headerName: x-ratelimit-remaining-tokens-minute
+          labels:
+          - name: window
+            value: minute
+          - name: resource
+            value: tokens
+          metricName: gen_ai.provider.runtime.rate_limit.remaining
+          source: HTTP_HEADER_SOURCE_RESPONSE
+          valueType: HEADER_VALUE_TYPE_INT64
+        - headerName: x-ratelimit-limit-tokens-day
+          labels:
+          - name: window
+            value: day
+          - name: resource
+            value: tokens
+          metricName: gen_ai.provider.runtime.rate_limit.limit
+          source: HTTP_HEADER_SOURCE_RESPONSE
+          valueType: HEADER_VALUE_TYPE_INT64
+        - headerName: x-ratelimit-remaining-tokens-day
+          labels:
+          - name: window
+            value: day
+          - name: resource
+            value: tokens
+          metricName: gen_ai.provider.runtime.rate_limit.remaining
+          source: HTTP_HEADER_SOURCE_RESPONSE
+          valueType: HEADER_VALUE_TYPE_INT64
+      profileId: nvidia_ratelimits
+  providerBinding:
+    surfaceId: openai-compatible
+  surfaceTemplates:
+  - runtime:
+      api:
+        baseUrl: https://integrate.api.nvidia.com/v1
+        protocol: PROTOCOL_OPENAI_COMPATIBLE
+      displayName: NVIDIA Integrate OpenAI Compatible
+    surfaceId: openai-compatible

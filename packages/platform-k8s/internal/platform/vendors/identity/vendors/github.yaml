@@ -1,0 +1,8 @@
+---
+aliases:
+- github-models
+description: GitHub-hosted model inference and evaluation APIs.
+displayName: GitHub
+iconUrl: https://github.com/favicon.ico
+vendorId: github
+websiteUrl: https://github.com/features/models

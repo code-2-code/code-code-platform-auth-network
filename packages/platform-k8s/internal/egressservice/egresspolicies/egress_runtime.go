@@ -11,17 +11,20 @@ import (
 type EgressRuntimeConfig struct {
 	Namespace                      string
 	DynamicHeaderAuthzProviderName string
+	ForwarderImage                 string
 }
 
 type egressRuntime struct {
 	namespace                      string
 	dynamicHeaderAuthzProviderName string
+	forwarderImage                 string
 }
 
 func newEgressRuntime(config EgressRuntimeConfig) (egressRuntime, error) {
 	runtime := egressRuntime{
 		namespace:                      strings.TrimSpace(config.Namespace),
 		dynamicHeaderAuthzProviderName: strings.TrimSpace(config.DynamicHeaderAuthzProviderName),
+		forwarderImage:                 strings.TrimSpace(config.ForwarderImage),
 	}
 	if runtime.namespace == "" {
 		return egressRuntime{}, fmt.Errorf("platformk8s/egressservice/egresspolicies: egress namespace is empty")

@@ -1,0 +1,8 @@
+---
+aliases:
+- paddle-paddle
+description: PaddlePaddle and ERNIE model publisher.
+displayName: PaddlePaddle
+iconUrl: https://www.paddlepaddle.org.cn/favicon.ico
+vendorId: paddlepaddle
+websiteUrl: https://www.paddlepaddle.org.cn

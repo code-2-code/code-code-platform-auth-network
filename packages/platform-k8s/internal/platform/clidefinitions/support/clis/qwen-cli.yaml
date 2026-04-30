@@ -1,0 +1,26 @@
+---
+cliId: qwen-cli
+displayName: Qwen CLI
+iconUrl: https://avatars.githubusercontent.com/u/141221163?v=4
+websiteUrl: https://qwen.ai
+vendorId: qwen
+runtimeCapabilities:
+- kind: RUNTIME_CAPABILITY_KIND_SKILL
+  supported: false
+- kind: RUNTIME_CAPABILITY_KIND_RULE
+  supported: false
+- kind: RUNTIME_CAPABILITY_KIND_MCP
+  supported: false
+- kind: RUNTIME_CAPABILITY_KIND_LSP
+  supported: false
+apiKeyProtocols:
+- protocol: PROTOCOL_OPENAI_COMPATIBLE
+  displayName: OpenAI Compatible
+  authMaterialization:
+    materializationKey: qwen-cli.openai-compatible-api-key
+    runtimeUrlProjectionKind: RUNTIME_PROJECTION_KIND_BASE_URL
+    includeRuntimeUrlHost: true
+    requestAuthInjection:
+      headerNames:
+      - authorization
+      headerValuePrefix: 'Bearer '

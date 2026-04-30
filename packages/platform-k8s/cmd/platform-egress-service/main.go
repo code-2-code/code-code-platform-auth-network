@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"net"
 	"os"
 	"os/signal"
@@ -31,6 +31,7 @@ func main() {
 	namespace := envOrDefault("PLATFORM_EGRESS_SERVICE_NAMESPACE", "code-code")
 	egressNamespace := envOrDefault("PLATFORM_EGRESS_SERVICE_EGRESS_NAMESPACE", "code-code-net")
 	dynamicHeaderAuthzProviderName := envOrDefault("PLATFORM_EGRESS_SERVICE_DYNAMIC_HEADER_AUTHZ_PROVIDER_NAME", "")
+	forwarderImage := strings.TrimSpace(os.Getenv("PLATFORM_EGRESS_SERVICE_FORWARDER_IMAGE"))
 	enableLLMHeaderLogs := boolEnv("PLATFORM_EGRESS_SERVICE_ENABLE_LLM_HEADER_LOGS")
 	telemetrySyncInterval := durationEnvOrDefault("PLATFORM_EGRESS_SERVICE_TELEMETRY_SYNC_INTERVAL", runtimeobservability.DefaultTelemetrySyncInterval)
 
@@ -57,6 +58,7 @@ func main() {
 		Namespace:                      namespace,
 		EgressNamespace:                egressNamespace,
 		DynamicHeaderAuthzProviderName: dynamicHeaderAuthzProviderName,
+		ForwarderImage:                 forwarderImage,
 		RuntimeTelemetry: runtimeobservability.Config{
 			Client:                   kubeClient,
 			NetworkNamespace:         egressNamespace,
@@ -91,12 +93,12 @@ func main() {
 	go func() { serveErr <- grpcServer.Serve(listener) }()
 	go server.RunRuntimeTelemetryReconciler(ctx)
 
-	log.Printf("platform-egress-service listening on %s (namespace=%s, egressNamespace=%s, llm_header_logs=%t, telemetry_sync_interval=%s)", addr, namespace, egressNamespace, enableLLMHeaderLogs, telemetrySyncInterval)
+	slog.Info("platform-egress-service listening", "addr", addr, "namespace", namespace, "egressNamespace", egressNamespace, "llm_header_logs", enableLLMHeaderLogs, "telemetry_sync_interval", telemetrySyncInterval)
 	select {
 	case err := <-serveErr:
 		must(err)
 	case <-ctx.Done():
-		log.Println("shutting down platform-egress-service...")
+		slog.Info("shutting down platform-egress-service")
 		healthServer.SetServingStatus("", healthv1.HealthCheckResponse_NOT_SERVING)
 		healthServer.SetServingStatus(egressservicev1.EgressService_ServiceDesc.ServiceName, healthv1.HealthCheckResponse_NOT_SERVING)
 		grpcServer.Stop()
@@ -134,6 +136,7 @@ func durationEnvOrDefault(key string, fallback time.Duration) time.Duration {
 
 func must(err error) {
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("fatal error", "error", err)
+		os.Exit(1)
 	}
 }

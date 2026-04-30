@@ -1,0 +1,11 @@
+---
+providerBindings:
+- providerBinding:
+    surfaceId: openai-compatible
+  surfaceTemplates:
+  - runtime:
+      api:
+        baseUrl: https://api.perplexity.ai
+        protocol: PROTOCOL_OPENAI_COMPATIBLE
+      displayName: Perplexity OpenAI Compatible
+    surfaceId: openai-compatible

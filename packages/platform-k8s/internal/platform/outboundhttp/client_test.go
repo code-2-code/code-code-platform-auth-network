@@ -1,7 +1,9 @@
 package outboundhttp
 
 import (
+	"context"
 	"net/http"
+	"net/url"
 	"testing"
 )
 
@@ -39,6 +41,45 @@ func TestHTTP1OnlyClientDisablesHTTP2(t *testing.T) {
 	}
 	if transport.TLSNextProto == nil {
 		t.Fatal("HTTP/1-only client should disable HTTP/2 ALPN handlers")
+	}
+}
+
+func TestNewClientFactoryWithProxyURLUsesExplicitProxy(t *testing.T) {
+	t.Parallel()
+
+	factory, err := NewClientFactoryWithProxyURL("http://proxy.example.test:10809")
+	if err != nil {
+		t.Fatalf("NewClientFactoryWithProxyURL() error = %v", err)
+	}
+	client, err := factory.NewClient(context.Background())
+	if err != nil {
+		t.Fatalf("NewClient() error = %v", err)
+	}
+	transport, ok := client.Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("transport type = %T, want *http.Transport", client.Transport)
+	}
+	if transport.Proxy == nil {
+		t.Fatal("transport.Proxy is nil, want explicit proxy")
+	}
+	target, err := url.Parse("https://api.mistral.ai/v1/models")
+	if err != nil {
+		t.Fatal(err)
+	}
+	proxy, err := transport.Proxy(&http.Request{URL: target})
+	if err != nil {
+		t.Fatalf("Proxy() error = %v", err)
+	}
+	if got, want := proxy.String(), "http://proxy.example.test:10809"; got != want {
+		t.Fatalf("proxy URL = %q, want %q", got, want)
+	}
+}
+
+func TestNewClientFactoryWithProxyURLRejectsInvalidProxy(t *testing.T) {
+	t.Parallel()
+
+	if _, err := NewClientFactoryWithProxyURL("ftp://proxy.example.test:10809"); err == nil {
+		t.Fatal("NewClientFactoryWithProxyURL() error is nil, want invalid scheme error")
 	}
 }
 

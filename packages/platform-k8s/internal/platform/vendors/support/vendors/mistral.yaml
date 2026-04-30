@@ -1,0 +1,82 @@
+---
+providerBindings:
+- observability:
+    profiles:
+    - activeQuery:
+        collectorId: mistral-billing
+        inputForm:
+          actionLabel: Update Session Token
+          description: Paste the console session token used by the Mistral billing
+            usage query.
+          fields:
+          - control: ACTIVE_QUERY_INPUT_CONTROL_PASSWORD
+            fieldId: access_token
+            label: Session token
+            persistence: ACTIVE_QUERY_INPUT_PERSISTENCE_STORED_MATERIAL
+            placeholder: Paste Mistral session token
+            required: true
+            sensitive: true
+          schemaId: mistral-billing-session
+          title: Update Mistral Session Token
+        minimumPollInterval: 300s
+      displayName: Mistral Billing Usage
+      metricQueries:
+      - displayName: Mistral Input Tokens
+        language: METRIC_QUERY_LANGUAGE_PROMQL
+        metricNames:
+        - gen_ai.provider.usage.tokens.count
+        queryId: mistral_billing_input_tokens
+        resultKind: METRIC_QUERY_RESULT_KIND_VECTOR
+        statement: max by (owner_kind, owner_id, vendor_id, access_target_id, provider_id,
+          model_id, resource, window, token_type) (gen_ai_provider_usage_tokens_count{vendor_id="mistral",
+          token_type="input"})
+      - displayName: Mistral Output Tokens
+        language: METRIC_QUERY_LANGUAGE_PROMQL
+        metricNames:
+        - gen_ai.provider.usage.tokens.count
+        queryId: mistral_billing_output_tokens
+        resultKind: METRIC_QUERY_RESULT_KIND_VECTOR
+        statement: max by (owner_kind, owner_id, vendor_id, access_target_id, provider_id,
+          model_id, resource, window, token_type) (gen_ai_provider_usage_tokens_count{vendor_id="mistral",
+          token_type="output"})
+      metrics:
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable access target identifier.
+          name: access_target_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Provider model identifier.
+          name: model_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Usage resource type.
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Usage time window.
+          name: window
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Token direction (input or output).
+          name: token_type
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        category: OBSERVABILITY_METRIC_CATEGORY_USAGE
+        description: Token usage from the Mistral console billing API, per model and
+          token type.
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.usage.tokens.count
+        unit: '{token}'
+      profileId: billing_usage
+  providerBinding:
+    surfaceId: openai-compatible
+  providerCard:
+    enabled: true
+  surfaceTemplates:
+  - runtime:
+      api:
+        baseUrl: https://api.mistral.ai/v1
+        protocol: PROTOCOL_OPENAI_COMPATIBLE
+      displayName: Mistral OpenAI Compatible
+    surfaceId: openai-compatible

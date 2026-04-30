@@ -172,9 +172,9 @@ func TestDesiredStateAcceptsHTTPSDestinationForL7Route(t *testing.T) {
 				Protocol:       egressv1.EgressProtocol_EGRESS_PROTOCOL_HTTPS,
 				Resolution:     egressv1.EgressResolution_EGRESS_RESOLUTION_DNS,
 			}},
-			HttpRoutes: []*egressv1.HttpEgressRoute{{
-				RouteId:       "openai-runtime-http",
-				DestinationId: "openai.api",
+			HttpInspectionRules: []*egressv1.HttpInspectionRule{{
+				InspectionRuleId: "openai-runtime-http",
+				DestinationId:    "openai.api",
 				Matches: []*egressv1.HttpRouteMatch{{
 					PathPrefixes: []string{"/v1/responses"},
 					Methods:      []string{"POST"},
@@ -189,8 +189,88 @@ func TestDesiredStateAcceptsHTTPSDestinationForL7Route(t *testing.T) {
 	if err != nil {
 		t.Fatalf("desiredStateFromPolicy() error = %v", err)
 	}
-	if got, want := len(desired.httpRoutes), 1; got != want {
-		t.Fatalf("http routes = %d, want %d", got, want)
+	if got, want := len(desired.httpInspectionRules), 1; got != want {
+		t.Fatalf("http inspection rules = %d, want %d", got, want)
+	}
+}
+
+func TestNormalizePolicyRejectsProxyPathForHTTPSDestination(t *testing.T) {
+	_, err := normalizePolicy(&egressv1.EgressPolicy{
+		PolicyId: "code-code-egress",
+		AccessSets: []*egressv1.ExternalAccessSet{{
+			AccessSetId:  "support",
+			OwnerService: "platform-support-service",
+			ExternalRules: []*egressv1.ExternalRule{{
+				ExternalRuleId: "google-aistudio-rpc",
+				DestinationId:  "google.aistudio.rpc",
+				HostMatch:      exactHost("alkalimakersuite-pa.clients6.google.com"),
+				Port:           443,
+				Protocol:       egressv1.EgressProtocol_EGRESS_PROTOCOL_HTTPS,
+				Resolution:     egressv1.EgressResolution_EGRESS_RESOLUTION_DNS,
+				EgressPath: &egressv1.EgressPath{
+					Mode:            egressv1.EgressPathMode_EGRESS_PATH_MODE_PROXY,
+					ProxyEndpointId: "preset-proxy",
+				},
+			}},
+			ProxyEndpoints: []*egressv1.ProxyEndpoint{{
+				ProxyEndpointId: "preset-proxy",
+				HostMatch:       exactHost("preset-proxy.local"),
+				AddressCidr:     "192.0.2.3/32",
+				Port:            10809,
+				Protocol:        egressv1.ProxyProtocol_PROXY_PROTOCOL_HTTP_CONNECT,
+				Resolution:      egressv1.EgressResolution_EGRESS_RESOLUTION_NONE,
+			}},
+		}},
+	})
+	if err == nil {
+		t.Fatal("normalizePolicy() error is nil, want HTTPS proxy path rejection")
+	}
+}
+
+func TestDesiredStateResolvesProxyEndpointForTLSDestination(t *testing.T) {
+	policy, err := normalizePolicy(&egressv1.EgressPolicy{
+		PolicyId: "code-code-egress",
+		AccessSets: []*egressv1.ExternalAccessSet{{
+			AccessSetId:  "support",
+			OwnerService: "platform-support-service",
+			ExternalRules: []*egressv1.ExternalRule{{
+				ExternalRuleId: "mistral-api",
+				DestinationId:  "mistral.api",
+				HostMatch:      exactHost("api.mistral.ai"),
+				Port:           443,
+				Protocol:       egressv1.EgressProtocol_EGRESS_PROTOCOL_TLS,
+				Resolution:     egressv1.EgressResolution_EGRESS_RESOLUTION_DNS,
+				EgressPath: &egressv1.EgressPath{
+					Mode:            egressv1.EgressPathMode_EGRESS_PATH_MODE_PROXY,
+					ProxyEndpointId: "preset-proxy",
+				},
+			}},
+			ProxyEndpoints: []*egressv1.ProxyEndpoint{{
+				ProxyEndpointId: "preset-proxy",
+				HostMatch:       exactHost("preset-proxy.local"),
+				AddressCidr:     "192.0.2.3/32",
+				Port:            10809,
+				Protocol:        egressv1.ProxyProtocol_PROXY_PROTOCOL_HTTP_CONNECT,
+				Resolution:      egressv1.EgressResolution_EGRESS_RESOLUTION_NONE,
+			}},
+		}},
+	})
+	if err != nil {
+		t.Fatalf("normalizePolicy() error = %v", err)
+	}
+	desired, err := desiredStateFromPolicy(policy)
+	if err != nil {
+		t.Fatalf("desiredStateFromPolicy() error = %v", err)
+	}
+	if got, want := len(desired.destinations), 1; got != want {
+		t.Fatalf("destinations = %d, want %d", got, want)
+	}
+	destination := desired.destinations[0]
+	if destination.proxyEndpoint == nil {
+		t.Fatal("destination proxy endpoint is nil")
+	}
+	if got, want := destination.proxyEndpoint.proxyEndpointID, "preset-proxy"; got != want {
+		t.Fatalf("destination proxy endpoint = %q, want %q", got, want)
 	}
 }
 
@@ -208,9 +288,9 @@ func TestDesiredStateRejectsTLSDestinationForL7Route(t *testing.T) {
 				Protocol:       egressv1.EgressProtocol_EGRESS_PROTOCOL_TLS,
 				Resolution:     egressv1.EgressResolution_EGRESS_RESOLUTION_DNS,
 			}},
-			HttpRoutes: []*egressv1.HttpEgressRoute{{
-				RouteId:       "openai-runtime-http",
-				DestinationId: "openai.api",
+			HttpInspectionRules: []*egressv1.HttpInspectionRule{{
+				InspectionRuleId: "openai-runtime-http",
+				DestinationId:    "openai.api",
 			}},
 		}},
 	})

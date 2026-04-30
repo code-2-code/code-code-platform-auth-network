@@ -1,4 +1,4 @@
-package authservice
+package credentialpolicy
 
 import (
 	"context"
@@ -9,12 +9,12 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func TestSupportCredentialMaterialReadAuthorizerAllowsDeclaredCLIMaterial(t *testing.T) {
+func TestMaterialReadAuthorizerAllowsDeclaredCLIMaterial(t *testing.T) {
 	t.Parallel()
 
-	authorizer, err := NewSupportCredentialMaterialReadAuthorizer()
+	authorizer, err := NewMaterialReadAuthorizer()
 	if err != nil {
-		t.Fatalf("NewSupportCredentialMaterialReadAuthorizer() error = %v", err)
+		t.Fatalf("NewMaterialReadAuthorizer() error = %v", err)
 	}
 
 	fields, err := authorizer.AuthorizeCredentialMaterialRead(context.Background(), &authv1.CredentialMaterialReadPolicyRef{
@@ -33,12 +33,12 @@ func TestSupportCredentialMaterialReadAuthorizerAllowsDeclaredCLIMaterial(t *tes
 	}
 }
 
-func TestSupportCredentialMaterialReadAuthorizerDeniesUndeclaredCLIMaterial(t *testing.T) {
+func TestMaterialReadAuthorizerDeniesUndeclaredCLIMaterial(t *testing.T) {
 	t.Parallel()
 
-	authorizer, err := NewSupportCredentialMaterialReadAuthorizer()
+	authorizer, err := NewMaterialReadAuthorizer()
 	if err != nil {
-		t.Fatalf("NewSupportCredentialMaterialReadAuthorizer() error = %v", err)
+		t.Fatalf("NewMaterialReadAuthorizer() error = %v", err)
 	}
 
 	_, err = authorizer.AuthorizeCredentialMaterialRead(context.Background(), &authv1.CredentialMaterialReadPolicyRef{
@@ -51,12 +51,12 @@ func TestSupportCredentialMaterialReadAuthorizerDeniesUndeclaredCLIMaterial(t *t
 	}
 }
 
-func TestSupportCredentialMaterialReadAuthorizerAllowsReadableBackfillMaterial(t *testing.T) {
+func TestMaterialReadAuthorizerAllowsReadableBackfillMaterial(t *testing.T) {
 	t.Parallel()
 
-	authorizer, err := NewSupportCredentialMaterialReadAuthorizer()
+	authorizer, err := NewMaterialReadAuthorizer()
 	if err != nil {
-		t.Fatalf("NewSupportCredentialMaterialReadAuthorizer() error = %v", err)
+		t.Fatalf("NewMaterialReadAuthorizer() error = %v", err)
 	}
 
 	fields, err := authorizer.AuthorizeCredentialMaterialRead(context.Background(), &authv1.CredentialMaterialReadPolicyRef{
@@ -72,12 +72,12 @@ func TestSupportCredentialMaterialReadAuthorizerAllowsReadableBackfillMaterial(t
 	}
 }
 
-func TestSupportCredentialMaterialReadAuthorizerAllowsDeclaredVendorMaterial(t *testing.T) {
+func TestMaterialReadAuthorizerAllowsDeclaredVendorMaterial(t *testing.T) {
 	t.Parallel()
 
-	authorizer, err := NewSupportCredentialMaterialReadAuthorizer()
+	authorizer, err := NewMaterialReadAuthorizer()
 	if err != nil {
-		t.Fatalf("NewSupportCredentialMaterialReadAuthorizer() error = %v", err)
+		t.Fatalf("NewMaterialReadAuthorizer() error = %v", err)
 	}
 
 	_, err = authorizer.AuthorizeCredentialMaterialRead(context.Background(), &authv1.CredentialMaterialReadPolicyRef{
@@ -91,12 +91,12 @@ func TestSupportCredentialMaterialReadAuthorizerAllowsDeclaredVendorMaterial(t *
 	}
 }
 
-func TestSupportCredentialMaterialReadAuthorizerDeniesVendorSecretMaterial(t *testing.T) {
+func TestMaterialReadAuthorizerDeniesVendorSecretMaterial(t *testing.T) {
 	t.Parallel()
 
-	authorizer, err := NewSupportCredentialMaterialReadAuthorizer()
+	authorizer, err := NewMaterialReadAuthorizer()
 	if err != nil {
-		t.Fatalf("NewSupportCredentialMaterialReadAuthorizer() error = %v", err)
+		t.Fatalf("NewMaterialReadAuthorizer() error = %v", err)
 	}
 
 	_, err = authorizer.AuthorizeCredentialMaterialRead(context.Background(), &authv1.CredentialMaterialReadPolicyRef{

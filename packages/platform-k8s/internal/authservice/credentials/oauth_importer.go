@@ -10,8 +10,8 @@ import (
 	credentialcontract "code-code.internal/platform-contract/credential"
 	"code-code.internal/platform-k8s/internal/platform/outboundhttp"
 	"code-code.internal/platform-k8s/internal/platform/resourcemeta"
-	clioauth "code-code.internal/platform-k8s/internal/supportservice/clidefinitions/oauth"
-	clisupport "code-code.internal/platform-k8s/internal/supportservice/clidefinitions/support"
+	clioauth "code-code.internal/platform-k8s/internal/platform/clidefinitions/oauth"
+	clisupport "code-code.internal/platform-k8s/internal/platform/clidefinitions/support"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )

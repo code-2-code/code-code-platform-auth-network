@@ -1,0 +1,196 @@
+---
+cliId: antigravity
+displayName: Antigravity
+iconUrl: https://antigravity.google/favicon.ico
+vendorId: google
+runtimeCapabilities:
+- kind: RUNTIME_CAPABILITY_KIND_SKILL
+  supported: false
+- kind: RUNTIME_CAPABILITY_KIND_RULE
+  supported: false
+- kind: RUNTIME_CAPABILITY_KIND_MCP
+  supported: false
+- kind: RUNTIME_CAPABILITY_KIND_LSP
+  supported: false
+oauth:
+  displayName: Google OAuth
+  flow: O_AUTH_AUTHORIZATION_FLOW_CODE
+  supportsOneClickAuthorization: true
+  supportedPurposes:
+  - CREDENTIAL_PURPOSE_DATA_PLANE
+  recommended: true
+  authMaterialization:
+    materializationKey: antigravity.google-oauth
+    runtimeUrlProjectionKind: RUNTIME_PROJECTION_KIND_BASE_URL
+    includeRuntimeUrlHost: true
+    extraTargetHosts:
+    - oauth2.googleapis.com
+    - www.googleapis.com
+    requestAuthInjection:
+      headerNames:
+      - authorization
+      headerValuePrefix: 'Bearer '
+  clientIdentity:
+    modelCatalogUserAgentTemplate: antigravity/${client_version} darwin/arm64
+  observability:
+    profiles:
+    - profileId: oauth_quota
+      displayName: Antigravity OAuth Quota
+      metrics:
+      - name: gen_ai.provider.cli.oauth.antigravity.model.quota.remaining.fraction.percent
+        description: Remaining quota percentage for one Antigravity available model.
+        unit: "%"
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        category: OBSERVABILITY_METRIC_CATEGORY_QUOTA
+        attributes:
+        - name: cli_id
+          description: Stable CLI identifier.
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - name: access_target_id
+          description: Stable access target identifier.
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - name: model_id
+          description: Provider model identifier returned by fetchAvailableModels.
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+      - name: gen_ai.provider.cli.oauth.antigravity.model.quota.reset.timestamp.seconds
+        description: Reset timestamp for one Antigravity available model quota window.
+        unit: s
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        category: OBSERVABILITY_METRIC_CATEGORY_QUOTA
+        attributes:
+        - name: cli_id
+          description: Stable CLI identifier.
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - name: access_target_id
+          description: Stable access target identifier.
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - name: model_id
+          description: Provider model identifier returned by fetchAvailableModels.
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+      activeQuery:
+        collectorId: antigravity
+        minimumPollInterval: 1800s
+        credentialBackfills:
+        - ruleId: project-id
+          outputFieldId: project_id
+          targetMaterialKey: project_id
+          required: true
+          readable: true
+        - ruleId: tier-name
+          outputFieldId: tier_name
+          targetMaterialKey: tier_name
+          readable: true
+      metricQueries:
+      - queryId: antigravity_model_quota_remaining_fraction_percent
+        displayName: Antigravity Model Quota Remaining Percent
+        language: METRIC_QUERY_LANGUAGE_PROMQL
+        statement: max by (cli_id, access_target_id, model_id) (gen_ai_provider_cli_oauth_antigravity_model_quota_remaining_fraction_percent)
+        metricNames:
+        - gen_ai.provider.cli.oauth.antigravity.model.quota.remaining.fraction.percent
+        resultKind: METRIC_QUERY_RESULT_KIND_VECTOR
+  modelCatalog:
+    authenticatedDiscovery:
+      collectorId: antigravity-oauth
+      authorityPriority: 650
+      operation:
+        baseUrl: https://cloudcode-pa.googleapis.com
+        path: v1internal:fetchAvailableModels
+        method: DISCOVERY_HTTP_METHOD_POST
+        jsonBodyFields:
+        - name: project
+          dynamicValue: DISCOVERY_DYNAMIC_VALUE_PROJECT_ID
+        responseKind: MODEL_CATALOG_DISCOVERY_RESPONSE_KIND_ANTIGRAVITY_MODELS_MAP
+    defaultCatalog:
+      source: CATALOG_SOURCE_FALLBACK_CONFIG
+      models:
+      - providerModelId: gemini-2.5-pro
+        modelRef:
+          vendorId: google
+          modelId: gemini-2.5-pro
+        providerMetadata:
+          accessKind: PROVIDER_MODEL_ACCESS_KIND_DIRECT
+      - providerModelId: gemini-2.5-flash
+        modelRef:
+          vendorId: google
+          modelId: gemini-2.5-flash
+        providerMetadata:
+          accessKind: PROVIDER_MODEL_ACCESS_KIND_DIRECT
+      - providerModelId: gemini-2.5-flash-lite
+        modelRef:
+          vendorId: google
+          modelId: gemini-2.5-flash-lite
+        providerMetadata:
+          accessKind: PROVIDER_MODEL_ACCESS_KIND_DIRECT
+      - providerModelId: gemini-3-pro-preview
+        modelRef:
+          vendorId: google
+          modelId: gemini-3-pro-preview
+        providerMetadata:
+          accessKind: PROVIDER_MODEL_ACCESS_KIND_DIRECT
+      - providerModelId: gemini-3.1-pro-preview
+        modelRef:
+          vendorId: google
+          modelId: gemini-3.1-pro-preview
+        providerMetadata:
+          accessKind: PROVIDER_MODEL_ACCESS_KIND_DIRECT
+      - providerModelId: gemini-3-flash-preview
+        modelRef:
+          vendorId: google
+          modelId: gemini-3-flash-preview
+        providerMetadata:
+          accessKind: PROVIDER_MODEL_ACCESS_KIND_DIRECT
+      - providerModelId: gemini-3.1-flash-lite-preview
+        modelRef:
+          vendorId: google
+          modelId: gemini-3.1-flash-lite-preview
+        providerMetadata:
+          accessKind: PROVIDER_MODEL_ACCESS_KIND_DIRECT
+  oauthClient:
+    clientId: GOOGLE_OAUTH_CLIENT_ID_PLACEHOLDER.apps.googleusercontent.com
+    scopes:
+    - https://www.googleapis.com/auth/cloud-platform
+    - https://www.googleapis.com/auth/userinfo.email
+    - https://www.googleapis.com/auth/userinfo.profile
+    - https://www.googleapis.com/auth/cclog
+    - https://www.googleapis.com/auth/experimentsandconfigs
+    pkce:
+      required: true
+      challengeMethod: O_AUTH_CODE_CHALLENGE_METHOD_S256
+  accountSummaryFields:
+  - fieldId: account-email
+    label: Account
+    source: CREDENTIAL_SUBJECT_SUMMARY_SOURCE_ARTIFACT_SUBJECT_EMAIL
+    valueFormat: CREDENTIAL_SUBJECT_SUMMARY_VALUE_FORMAT_MASK_EMAIL
+  - fieldId: tier
+    label: Tier
+    source: CREDENTIAL_SUBJECT_SUMMARY_SOURCE_CREDENTIAL_MATERIAL
+    materialKey: tier_name
+    valueFormat: CREDENTIAL_SUBJECT_SUMMARY_VALUE_FORMAT_PLAIN_TEXT
+  - fieldId: project
+    label: Project
+    source: CREDENTIAL_SUBJECT_SUMMARY_SOURCE_CREDENTIAL_MATERIAL
+    materialKey: project_id
+    valueFormat: CREDENTIAL_SUBJECT_SUMMARY_VALUE_FORMAT_PLAIN_TEXT
+  providerCard:
+    enabled: true
+  codeFlow:
+    authorizationUrl: https://accounts.google.com/o/oauth2/v2/auth
+    tokenUrl: https://oauth2.googleapis.com/token
+    authorizationParameters:
+    - name: access_type
+      value: offline
+    - name: prompt
+      value: consent
+    callbackDelivery:
+      mode: O_AUTH_CALLBACK_MODE_LOCALHOST_RELAY
+      callbackProviderId: antigravity
+      providerRedirectUri: http://localhost:51121/oauth-callback
+      localhostListenHost: 127.0.0.1
+      localhostListenPort: 51121
+      localhostCallbackPath: "/oauth-callback"
+    requiresState: true
+  providerBinding:
+    surfaceId: gemini
+officialVersionSource:
+  homebrewCask:
+    cask: antigravity
