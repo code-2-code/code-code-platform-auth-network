@@ -1,11 +1,8 @@
 ---
-providerBindings:
-- providerBinding:
-    surfaceId: openai-compatible
-  surfaceTemplates:
-  - runtime:
-      api:
-        baseUrl: https://router.huggingface.co/v1
-        protocol: PROTOCOL_OPENAI_COMPATIBLE
-      displayName: Hugging Face Routed Inference
-    surfaceId: openai-compatible
+surfaces:
+- surfaceId: openai-compatible
+  productInfoId: huggingface-hub
+  api:
+    apiEndpoints:
+    - protocol: PROTOCOL_OPENAI_COMPATIBLE
+      baseUrl: https://router.huggingface.co/v1

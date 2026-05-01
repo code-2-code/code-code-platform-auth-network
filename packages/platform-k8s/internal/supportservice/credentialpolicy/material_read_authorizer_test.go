@@ -18,7 +18,7 @@ func TestMaterialReadAuthorizerAllowsDeclaredCLIMaterial(t *testing.T) {
 	}
 
 	fields, err := authorizer.AuthorizeCredentialMaterialRead(context.Background(), &authv1.CredentialMaterialReadPolicyRef{
-		Kind:        authv1.CredentialMaterialReadPolicyKind_CREDENTIAL_MATERIAL_READ_POLICY_KIND_CLI_OAUTH_ACTIVE_QUERY,
+		Kind:        authv1.CredentialMaterialReadPolicyKind_CREDENTIAL_MATERIAL_READ_POLICY_KIND_CLI_OAUTH_QUOTA_QUERY,
 		OwnerId:     "codex",
 		CollectorId: "codex",
 	}, []string{"account_id", "account_id"})
@@ -42,7 +42,7 @@ func TestMaterialReadAuthorizerDeniesUndeclaredCLIMaterial(t *testing.T) {
 	}
 
 	_, err = authorizer.AuthorizeCredentialMaterialRead(context.Background(), &authv1.CredentialMaterialReadPolicyRef{
-		Kind:        authv1.CredentialMaterialReadPolicyKind_CREDENTIAL_MATERIAL_READ_POLICY_KIND_CLI_OAUTH_ACTIVE_QUERY,
+		Kind:        authv1.CredentialMaterialReadPolicyKind_CREDENTIAL_MATERIAL_READ_POLICY_KIND_CLI_OAUTH_QUOTA_QUERY,
 		OwnerId:     "codex",
 		CollectorId: "codex",
 	}, []string{"access_token"})
@@ -60,7 +60,7 @@ func TestMaterialReadAuthorizerAllowsReadableBackfillMaterial(t *testing.T) {
 	}
 
 	fields, err := authorizer.AuthorizeCredentialMaterialRead(context.Background(), &authv1.CredentialMaterialReadPolicyRef{
-		Kind:        authv1.CredentialMaterialReadPolicyKind_CREDENTIAL_MATERIAL_READ_POLICY_KIND_CLI_OAUTH_ACTIVE_QUERY,
+		Kind:        authv1.CredentialMaterialReadPolicyKind_CREDENTIAL_MATERIAL_READ_POLICY_KIND_CLI_OAUTH_QUOTA_QUERY,
 		OwnerId:     "gemini-cli",
 		CollectorId: "gemini-cli",
 	}, []string{"project_id", "tier_name"})
@@ -81,9 +81,9 @@ func TestMaterialReadAuthorizerAllowsDeclaredVendorMaterial(t *testing.T) {
 	}
 
 	_, err = authorizer.AuthorizeCredentialMaterialRead(context.Background(), &authv1.CredentialMaterialReadPolicyRef{
-		Kind:        authv1.CredentialMaterialReadPolicyKind_CREDENTIAL_MATERIAL_READ_POLICY_KIND_VENDOR_ACTIVE_QUERY,
+		Kind:        authv1.CredentialMaterialReadPolicyKind_CREDENTIAL_MATERIAL_READ_POLICY_KIND_VENDOR_QUOTA_QUERY,
 		OwnerId:     "google",
-		SurfaceId:   "gemini",
+		SurfaceId:   "google-gemini",
 		CollectorId: "google-aistudio-quotas",
 	}, []string{"project_id"})
 	if err != nil {
@@ -100,9 +100,9 @@ func TestMaterialReadAuthorizerDeniesVendorSecretMaterial(t *testing.T) {
 	}
 
 	_, err = authorizer.AuthorizeCredentialMaterialRead(context.Background(), &authv1.CredentialMaterialReadPolicyRef{
-		Kind:        authv1.CredentialMaterialReadPolicyKind_CREDENTIAL_MATERIAL_READ_POLICY_KIND_VENDOR_ACTIVE_QUERY,
+		Kind:        authv1.CredentialMaterialReadPolicyKind_CREDENTIAL_MATERIAL_READ_POLICY_KIND_VENDOR_QUOTA_QUERY,
 		OwnerId:     "google",
-		SurfaceId:   "gemini",
+		SurfaceId:   "google-gemini",
 		CollectorId: "google-aistudio-quotas",
 	}, []string{"cookie"})
 	if status.Code(err) != codes.PermissionDenied {

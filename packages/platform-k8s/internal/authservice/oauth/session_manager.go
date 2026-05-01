@@ -20,7 +20,7 @@ type sessionAuthorizerRegistry interface {
 	DeviceFlowAuthorizer(cli credentialcontract.OAuthCLIID) (credentialcontract.DeviceAuthorizer, error)
 }
 
-type cliOAuthSupportReader interface {
+type cliOAuthReader interface {
 	Get(ctx context.Context, cliID string) (*supportv1.CLI, error)
 }
 
@@ -38,7 +38,7 @@ type SessionManager struct {
 	namespace             string
 	resourceStore         AuthorizationSessionResourceStore
 	registry              sessionAuthorizerRegistry
-	cliSupport            cliOAuthSupportReader
+	cliSupport            cliOAuthReader
 	hostedCallbackBaseURL string
 	sessionStore          *OAuthSessionSecretStore
 	observer              SessionObserver
@@ -53,7 +53,7 @@ type SessionManagerConfig struct {
 	Namespace             string
 	ResourceStore         AuthorizationSessionResourceStore
 	Registry              sessionAuthorizerRegistry
-	CLISupport            cliOAuthSupportReader
+	CLISupport            cliOAuthReader
 	HostedCallbackBaseURL string
 	SessionStore          *OAuthSessionSecretStore
 	Observer              SessionObserver

@@ -52,7 +52,7 @@ func TestValidateOAuthClientIdentityRejectsUnsupportedTemplateVariable(t *testin
 		},
 		Oauth: &supportv1.OAuthSupport{
 			ClientIdentity: &supportv1.OAuthClientIdentity{
-				ModelCatalogUserAgentTemplate: "antigravity/${platform}",
+				ObservabilityUserAgentTemplate: "antigravity/${platform}",
 			},
 		},
 	}

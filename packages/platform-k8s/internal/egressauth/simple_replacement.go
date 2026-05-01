@@ -3,6 +3,8 @@ package egressauth
 import (
 	"strings"
 	"time"
+
+	"code-code.internal/platform-k8s/internal/sessioncookie"
 )
 
 type ReplacementInput struct {
@@ -245,27 +247,5 @@ func cookiePairMaterial(material map[string]string, name string) string {
 }
 
 func cookieValue(header string, name string) string {
-	name = strings.TrimSpace(name)
-	for key, value := range parseCookieHeader(header) {
-		if key == name {
-			return value
-		}
-	}
-	return ""
-}
-
-func parseCookieHeader(header string) map[string]string {
-	jar := map[string]string{}
-	for _, part := range strings.Split(header, ";") {
-		key, value, ok := strings.Cut(strings.TrimSpace(part), "=")
-		if !ok {
-			continue
-		}
-		key = strings.TrimSpace(key)
-		value = strings.TrimSpace(value)
-		if key != "" && value != "" {
-			jar[key] = value
-		}
-	}
-	return jar
+	return sessioncookie.Value(header, name)
 }

@@ -1,14 +1,12 @@
 ---
-providerBindings:
-- modelDiscovery:
-    activeDiscovery:
-      operation:
-        path: models
-        responseKind: MODEL_CATALOG_DISCOVERY_RESPONSE_KIND_OPENAI_MODELS
-      surfaceIds:
-      - openai-compatible
-    authorityPriority: 650
-    collectorId: modelscope-models
+surfaces:
+- surfaceId: openai-compatible
+  productInfoId: modelscope
+  api:
+    apiEndpoints:
+    - protocol: PROTOCOL_OPENAI_COMPATIBLE
+      baseUrl: https://api-inference.modelscope.cn/v1
+  modelCatalogProbeId: modelscope-models
   observability:
     profiles:
     - displayName: ModelScope Daily Quota
@@ -16,9 +14,6 @@ providerBindings:
       - attributes:
         - description: Stable vendor identifier.
           name: vendor_id
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - description: Stable access target identifier.
-          name: access_target_id
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
         - description: Stable provider identifier.
           name: provider_id
@@ -57,13 +52,10 @@ providerBindings:
         description: ModelScope daily request limit (user total or per-model).
         kind: OBSERVABILITY_METRIC_KIND_GAUGE
         name: gen_ai.provider.runtime.quota.limit
-        unit: "1"
+        unit: '1'
       - attributes:
         - description: Stable vendor identifier.
           name: vendor_id
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - description: Stable access target identifier.
-          name: access_target_id
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
         - description: Stable provider identifier.
           name: provider_id
@@ -102,7 +94,7 @@ providerBindings:
         description: ModelScope daily remaining requests (user total or per-model).
         kind: OBSERVABILITY_METRIC_KIND_GAUGE
         name: gen_ai.provider.runtime.quota.remaining
-        unit: "1"
+        unit: '1'
       passiveHttp:
         capturePoint: TELEMETRY_CAPTURE_POINT_EGRESS
         emitAccessLog: true
@@ -158,12 +150,3 @@ providerBindings:
           source: HTTP_HEADER_SOURCE_RESPONSE
           valueType: HEADER_VALUE_TYPE_INT64
       profileId: modelscope_quota
-  providerBinding:
-    surfaceId: openai-compatible
-  surfaceTemplates:
-  - runtime:
-      api:
-        baseUrl: https://api-inference.modelscope.cn/v1
-        protocol: PROTOCOL_OPENAI_COMPATIBLE
-      displayName: ModelScope OpenAI Compatible
-    surfaceId: openai-compatible

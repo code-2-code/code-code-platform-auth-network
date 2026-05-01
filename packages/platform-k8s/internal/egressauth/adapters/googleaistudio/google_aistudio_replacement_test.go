@@ -32,16 +32,12 @@ func TestReplaceHeaderPageAPIKey(t *testing.T) {
 	got, ok := ReplaceHeader(egressauth.ReplacementInput{
 		HeaderName:   "x-goog-api-key",
 		CurrentValue: egressauth.Placeholder,
-		Material: map[string]string{
-			"page_api_key": "page-key",
-			"api_key":      "fallback-key",
-		},
 	})
 	if !ok {
 		t.Fatal("ReplaceHeader() ok = false")
 	}
-	if got != "page-key" {
-		t.Fatalf("ReplaceHeader() = %q, want %q", got, "page-key")
+	if got != pageAPIKey {
+		t.Fatalf("ReplaceHeader() = %q, want page API key", got)
 	}
 }
 

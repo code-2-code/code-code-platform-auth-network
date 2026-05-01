@@ -1,11 +1,8 @@
 ---
-providerBindings:
-- providerBinding:
-    surfaceId: openai-compatible
-  surfaceTemplates:
-  - runtime:
-      api:
-        baseUrl: https://api.deepinfra.com/v1/openai
-        protocol: PROTOCOL_OPENAI_COMPATIBLE
-      displayName: DeepInfra OpenAI Compatible
-    surfaceId: openai-compatible
+surfaces:
+- surfaceId: openai-compatible
+  productInfoId: deepinfra
+  api:
+    apiEndpoints:
+    - protocol: PROTOCOL_OPENAI_COMPATIBLE
+      baseUrl: https://api.deepinfra.com/v1/openai

@@ -12,6 +12,8 @@ import (
 	"code-code.internal/platform-k8s/internal/egressauth"
 	"code-code.internal/platform-k8s/internal/egressauthpolicy"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type fakeCredentialResolver struct {
@@ -151,8 +153,7 @@ func TestResolveEgressRequestHeadersGeneratesGoogleAIStudioHeadersFromAuthPolicy
 			Kind:    credentialv1.CredentialKind_CREDENTIAL_KIND_SESSION,
 			Material: &credentialv1.ResolvedCredential_Session{
 				Session: &credentialv1.SessionCredential{Values: map[string]string{
-					"cookie":       "SAPISID=sapisid; __Secure-1PAPISID=one; __Secure-3PAPISID=three",
-					"page_api_key": "page-key",
+					"cookie": "SAPISID=sapisid; __Secure-1PAPISID=one; __Secure-3PAPISID=three",
 				}},
 			},
 		},
@@ -204,8 +205,123 @@ policies:
 	if got, want := headerMutationValue(response.GetHeaders(), "cookie"), "SAPISID=sapisid; __Secure-1PAPISID=one; __Secure-3PAPISID=three"; got != want {
 		t.Fatalf("cookie = %q, want %q", got, want)
 	}
-	if got, want := headerMutationValue(response.GetHeaders(), "x-goog-api-key"), "page-key"; got != want {
+	if got, want := headerMutationValue(response.GetHeaders(), "x-goog-api-key"), "AIzaSyDdP816MREB3SkjZO04QXbjsigfcI0GWOs"; got != want {
 		t.Fatalf("x-goog-api-key = %q, want %q", got, want)
+	}
+}
+
+func TestResolveEgressRequestHeadersGeneratesMistralAdminHeadersFromAuthPolicy(t *testing.T) {
+	resolver := &fakeCredentialResolver{
+		credential: &credentialv1.ResolvedCredential{
+			GrantId: "credential-observability",
+			Kind:    credentialv1.CredentialKind_CREDENTIAL_KIND_SESSION,
+			Material: &credentialv1.ResolvedCredential_Session{
+				Session: &credentialv1.SessionCredential{Values: map[string]string{
+					"cookie": "ory_session_test=abc; csrftoken=csrf-1",
+				}},
+			},
+		},
+	}
+	server := &Server{
+		credentialResolver: resolver,
+		headerRewritePolicies: mustHeaderRewritePolicies(t, `
+policies:
+  - policyId: test.mistral-admin-session
+    adapterId: mistral-admin-session
+    source:
+      serviceAccounts:
+        - code-code/platform-observability-runner
+    target:
+      hosts:
+        - admin.mistral.ai
+      pathPrefixes:
+        - /api/billing/
+      methods:
+        - GET
+    materializations:
+      - materializationKey: test.mistral-admin-session
+        credentialId: credential-observability
+        requestReplacementRules:
+          - headerName: cookie
+          - headerName: x-csrftoken
+`),
+	}
+
+	response, err := server.ResolveEgressRequestHeaders(context.Background(), &authv1.ResolveEgressRequestHeadersRequest{
+		SourcePrincipal: "spiffe://cluster.local/ns/code-code/sa/platform-observability-runner",
+		TargetHost:      "admin.mistral.ai:443",
+		TargetPath:      "/api/billing/v2/usage",
+		TargetMethod:    http.MethodGet,
+	})
+	if err != nil {
+		t.Fatalf("ResolveEgressRequestHeaders() error = %v", err)
+	}
+	if got, want := resolver.grantID, "credential-observability"; got != want {
+		t.Fatalf("resolved credential id = %q, want %q", got, want)
+	}
+	if got, want := headerMutationValue(response.GetHeaders(), "cookie"), "ory_session_test=abc; csrftoken=csrf-1"; got != want {
+		t.Fatalf("cookie = %q, want %q", got, want)
+	}
+	if got, want := headerMutationValue(response.GetHeaders(), "x-csrftoken"), "csrf-1"; got != want {
+		t.Fatalf("x-csrftoken = %q, want %q", got, want)
+	}
+}
+
+func TestResolveEgressRequestHeadersReportsGoogleAIStudioMissingAuthorizationMaterial(t *testing.T) {
+	resolver := &fakeCredentialResolver{
+		credential: &credentialv1.ResolvedCredential{
+			GrantId: "credential-observability",
+			Kind:    credentialv1.CredentialKind_CREDENTIAL_KIND_SESSION,
+			Material: &credentialv1.ResolvedCredential_Session{
+				Session: &credentialv1.SessionCredential{Values: map[string]string{
+					"cookie": "SID=session-only",
+				}},
+			},
+		},
+	}
+	server := &Server{
+		credentialResolver: resolver,
+		headerRewritePolicies: mustHeaderRewritePolicies(t, `
+policies:
+  - policyId: test.google-aistudio-session
+    adapterId: google-aistudio-session
+    source:
+      serviceAccounts:
+        - code-code/platform-observability-runner
+    target:
+      hosts:
+        - alkalimakersuite-pa.clients6.google.com
+      pathPrefixes:
+        - /$rpc/google.internal.alkali.applications.makersuite.v1.MakerSuiteService/
+      methods:
+        - POST
+    materializations:
+      - materializationKey: test.google-aistudio-session
+        credentialId: credential-observability
+        requestReplacementRules:
+          - headerName: authorization
+          - headerName: cookie
+          - headerName: x-goog-api-key
+`),
+	}
+
+	_, err := server.ResolveEgressRequestHeaders(context.Background(), &authv1.ResolveEgressRequestHeadersRequest{
+		SourcePrincipal: "spiffe://cluster.local/ns/code-code/sa/platform-observability-runner",
+		TargetHost:      "alkalimakersuite-pa.clients6.google.com:443",
+		TargetPath:      "/$rpc/google.internal.alkali.applications.makersuite.v1.MakerSuiteService/ListModelRateLimits",
+		TargetMethod:    http.MethodPost,
+		RequestHeaders: map[string]string{
+			"origin": "https://aistudio.google.com",
+		},
+	})
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("ResolveEgressRequestHeaders() code = %v, want %v, err=%v", status.Code(err), codes.FailedPrecondition, err)
+	}
+	if !strings.Contains(err.Error(), `header "authorization"`) {
+		t.Fatalf("ResolveEgressRequestHeaders() error = %q, want authorization header context", err.Error())
+	}
+	if strings.Contains(err.Error(), "SID=session-only") {
+		t.Fatalf("ResolveEgressRequestHeaders() error leaks material: %q", err.Error())
 	}
 }
 

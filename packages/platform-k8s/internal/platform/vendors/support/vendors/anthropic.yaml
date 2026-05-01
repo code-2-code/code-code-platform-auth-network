@@ -1,11 +1,8 @@
 ---
-providerBindings:
-- providerBinding:
-    surfaceId: anthropic
-  surfaceTemplates:
-  - runtime:
-      api:
-        baseUrl: https://api.anthropic.com
-        protocol: PROTOCOL_ANTHROPIC
-      displayName: Anthropic Compatible
-    surfaceId: anthropic
+surfaces:
+- surfaceId: anthropic
+  productInfoId: anthropic
+  api:
+    apiEndpoints:
+    - protocol: PROTOCOL_ANTHROPIC
+      baseUrl: https://api.anthropic.com

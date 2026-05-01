@@ -162,7 +162,7 @@ func resolveGeneratedEgressHeaders(request *authv1.ResolveEgressRequestHeadersRe
 			}
 			value, ok := runtimeEgressHeaderValueForRule(request, material, rule)
 			if !ok {
-				return nil, status.Error(codes.FailedPrecondition, "egress auth replacement failed")
+				return nil, egressAuthReplacementFailedHeaderError(name)
 			}
 			headers[name] = value
 		}
@@ -170,7 +170,7 @@ func resolveGeneratedEgressHeaders(request *authv1.ResolveEgressRequestHeadersRe
 		for _, name := range allowedHeaders {
 			value, ok := runtimeEgressHeaderValue(request, material, name)
 			if !ok {
-				return nil, status.Error(codes.FailedPrecondition, "egress auth replacement failed")
+				return nil, egressAuthReplacementFailedHeaderError(name)
 			}
 			headers[name] = value
 		}
@@ -182,6 +182,14 @@ func resolveGeneratedEgressHeaders(request *authv1.ResolveEgressRequestHeadersRe
 		Headers:       requestHeaderMutationsFromMap(headers),
 		RemoveHeaders: egressauth.InternalHeaders(),
 	}, nil
+}
+
+func egressAuthReplacementFailedHeaderError(name string) error {
+	name = normalizeHTTPHeaderName(name)
+	if name == "" {
+		return status.Error(codes.FailedPrecondition, "egress auth replacement failed")
+	}
+	return status.Errorf(codes.FailedPrecondition, "egress auth replacement failed for header %q", name)
 }
 
 func runtimeEgressHeaderValueForRule(request *authv1.ResolveEgressRequestHeadersRequest, material map[string]string, rule egressauth.SimpleReplacementRule) (string, bool) {

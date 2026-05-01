@@ -43,6 +43,10 @@ func (s *Server) writeSessionCredential(ctx context.Context, request sessionCred
 	if err != nil {
 		return nil, grpcError(err)
 	}
+	values, err = enrichSessionCredentialValues(ctx, request.GetSchemaId(), values)
+	if err != nil {
+		return nil, grpcError(err)
+	}
 	credential, err := credentials.NewCredential(&credentialv1.CredentialDefinition{
 		CredentialId: request.GetCredentialId(),
 		DisplayName:  request.GetDisplayName(),

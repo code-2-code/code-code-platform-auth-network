@@ -6,7 +6,6 @@ import (
 	"slices"
 	"strings"
 
-	observabilityv1 "code-code.internal/go-contract/observability/v1"
 	supportv1 "code-code.internal/go-contract/platform/support/v1"
 	"google.golang.org/protobuf/proto"
 )
@@ -87,36 +86,11 @@ func finalizeRegisteredCLI(cliID string, item *supportv1.CLI) (*supportv1.CLI, e
 	if next.CliId == "" {
 		next.CliId = cliID
 	}
-	normalizeOAuthProviderBinding(next)
-	if err := ValidateRuntimeCapabilities(next); err != nil {
-		return nil, err
-	}
-	if err := ValidateAuthMaterializations(next); err != nil {
-		return nil, err
-	}
 	if err := ValidateCredentialSubjectSummaryFields(next); err != nil {
 		return nil, err
 	}
 	if err := ValidateOAuthClientIdentity(next); err != nil {
 		return nil, err
 	}
-	if next.GetOauth() != nil && next.GetOauth().GetObservability() != nil {
-		if err := observabilityv1.ValidateCapability(next.GetOauth().GetObservability()); err != nil {
-			return nil, fmt.Errorf("platformk8s: invalid cli oauth observability for %q: %w", next.GetCliId(), err)
-		}
-	}
 	return next, nil
-}
-
-func firstActiveQueryCollectorID(capability *observabilityv1.ObservabilityCapability) string {
-	for _, profile := range capability.GetProfiles() {
-		activeQuery := profile.GetActiveQuery()
-		if activeQuery == nil {
-			continue
-		}
-		if collectorID := strings.TrimSpace(activeQuery.GetCollectorId()); collectorID != "" {
-			return collectorID
-		}
-	}
-	return ""
 }

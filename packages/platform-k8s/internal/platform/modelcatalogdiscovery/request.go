@@ -27,6 +27,9 @@ func operationMethod(operation *modelcatalogdiscoveryv1.ModelCatalogDiscoveryOpe
 }
 
 func operationURL(baseURL string, operation *modelcatalogdiscoveryv1.ModelCatalogDiscoveryOperation, dynamicValues DynamicValues) (string, error) {
+	if strings.TrimSpace(operation.GetBaseUrl()) != "" {
+		baseURL = strings.TrimSpace(operation.GetBaseUrl())
+	}
 	parsed, err := url.Parse(baseURL)
 	if err != nil || parsed == nil {
 		return "", domainerror.NewValidation("platformk8s/modelcatalogdiscovery: invalid base_url")

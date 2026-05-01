@@ -16,10 +16,10 @@ func TestPresetExternalRuleSetsProjectToExternalAccessSets(t *testing.T) {
 	if got, want := accessSet.GetAccessSetId(), "support.external-rule-set.bootstrap"; got != want {
 		t.Fatalf("access set id = %q, want %q", got, want)
 	}
-	if got, want := len(accessSet.GetExternalRules()), 13; got != want {
+	if got, want := len(accessSet.GetExternalRules()), 14; got != want {
 		t.Fatalf("external rules = %d, want %d", got, want)
 	}
-	if got, want := len(accessSet.GetServiceRules()), 13; got != want {
+	if got, want := len(accessSet.GetServiceRules()), 14; got != want {
 		t.Fatalf("service rules = %d, want %d", got, want)
 	}
 	if got, want := len(accessSet.GetHttpInspectionRules()), 0; got != want {
@@ -58,6 +58,17 @@ func TestPresetExternalRuleSetsProjectToExternalAccessSets(t *testing.T) {
 	mistralConsoleServiceRule := serviceRuleByDestination(t, accessSet, "vendor.mistral.console")
 	if got, want := mistralConsoleServiceRule.GetSourceServiceAccounts(), []string{"code-code/platform-provider-service"}; !slices.Equal(got, want) {
 		t.Fatalf("mistral console source service accounts = %v, want %v", got, want)
+	}
+	mistralAdminRule := externalRuleByDestination(t, accessSet, "vendor.mistral.admin")
+	if got, want := mistralAdminRule.GetHostMatch().GetHostExact(), "admin.mistral.ai"; got != want {
+		t.Fatalf("mistral admin host exact = %q, want %q", got, want)
+	}
+	mistralAdminServiceRule := serviceRuleByDestination(t, accessSet, "vendor.mistral.admin")
+	if got, want := mistralAdminServiceRule.GetSourceServiceAccounts(), []string{
+		"code-code/platform-auth-service",
+		"code-code/platform-provider-service",
+	}; !slices.Equal(got, want) {
+		t.Fatalf("mistral admin source service accounts = %v, want %v", got, want)
 	}
 	googleAIStudioRPCRule := externalRuleByDestination(t, accessSet, "vendor.google.aistudio.rpc")
 	if got, want := googleAIStudioRPCRule.GetHostMatch().GetHostExact(), "alkalimakersuite-pa.clients6.google.com"; got != want {

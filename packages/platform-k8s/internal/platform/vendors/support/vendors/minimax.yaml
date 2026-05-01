@@ -1,8 +1,14 @@
 ---
-providerBindings:
-- observability:
+surfaces:
+- surfaceId: openai-compatible
+  productInfoId: minimax
+  api:
+    apiEndpoints:
+    - protocol: PROTOCOL_OPENAI_COMPATIBLE
+      baseUrl: https://api.minimaxi.com/v1
+  observability:
     profiles:
-    - activeQuery:
+    - quotaQuery:
         collectorId: minimax-remains
         minimumPollInterval: 300s
       displayName: MiniMax API Key Quota
@@ -13,7 +19,7 @@ providerBindings:
         - gen_ai.provider.quota.remaining
         queryId: minimax_model_remaining_count
         resultKind: METRIC_QUERY_RESULT_KIND_VECTOR
-        statement: max by (owner_kind, owner_id, vendor_id, access_target_id, provider_id,
+        statement: max by (owner_kind, owner_id, vendor_id, provider_id,
           model_id, resource, window) (gen_ai_provider_quota_remaining{vendor_id="minimax"})
       - displayName: MiniMax Total Count
         language: METRIC_QUERY_LANGUAGE_PROMQL
@@ -21,15 +27,12 @@ providerBindings:
         - gen_ai.provider.quota.limit
         queryId: minimax_model_total_count
         resultKind: METRIC_QUERY_RESULT_KIND_VECTOR
-        statement: max by (owner_kind, owner_id, vendor_id, access_target_id, provider_id,
+        statement: max by (owner_kind, owner_id, vendor_id, provider_id,
           model_id, resource, window) (gen_ai_provider_quota_limit{vendor_id="minimax"})
       metrics:
       - attributes:
         - description: Stable vendor identifier.
           name: vendor_id
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - description: Stable access target identifier.
-          name: access_target_id
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
         - description: Stable provider identifier.
           name: provider_id
@@ -65,13 +68,10 @@ providerBindings:
         description: Remaining MiniMax coding plan quota count for one supported model.
         kind: OBSERVABILITY_METRIC_KIND_GAUGE
         name: gen_ai.provider.quota.remaining
-        unit: '{count}'
+        unit: "{count}"
       - attributes:
         - description: Stable vendor identifier.
           name: vendor_id
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - description: Stable access target identifier.
-          name: access_target_id
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
         - description: Stable provider identifier.
           name: provider_id
@@ -107,13 +107,10 @@ providerBindings:
         description: Total MiniMax coding plan quota count for one supported model.
         kind: OBSERVABILITY_METRIC_KIND_GAUGE
         name: gen_ai.provider.quota.limit
-        unit: '{count}'
+        unit: "{count}"
       - attributes:
         - description: Stable vendor identifier.
           name: vendor_id
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - description: Stable access target identifier.
-          name: access_target_id
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
         - description: Stable provider identifier.
           name: provider_id
@@ -150,13 +147,10 @@ providerBindings:
           model.
         kind: OBSERVABILITY_METRIC_KIND_GAUGE
         name: gen_ai.provider.quota.remaining.fraction.percent
-        unit: '%'
+        unit: "%"
       - attributes:
         - description: Stable vendor identifier.
           name: vendor_id
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - description: Stable access target identifier.
-          name: access_target_id
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
         - description: Stable provider identifier.
           name: provider_id
@@ -194,39 +188,16 @@ providerBindings:
         name: gen_ai.provider.quota.reset.timestamp.seconds
         unit: s
       profileId: api_key_quota
-  providerBinding:
-    surfaceId: openai-compatible
-  providerCard:
-    enabled: true
-  surfaceTemplates:
-  - bootstrapCatalog:
-      models:
-      - modelRef:
-          modelId: MiniMax-M2.7
-          vendorId: minimax
-        providerModelId: MiniMax-M2.7
-      - modelRef:
-          modelId: MiniMax-M2.7-highspeed
-          vendorId: minimax
-        providerModelId: MiniMax-M2.7-highspeed
-      - modelRef:
-          modelId: MiniMax-M2.5
-          vendorId: minimax
-        providerModelId: MiniMax-M2.5
-      - modelRef:
-          modelId: MiniMax-M2.5-highspeed
-          vendorId: minimax
-        providerModelId: MiniMax-M2.5-highspeed
-      source: CATALOG_SOURCE_VENDOR_PRESET
-    runtime:
-      api:
-        baseUrl: https://api.minimaxi.com/v1
-        protocol: PROTOCOL_OPENAI_COMPATIBLE
-      displayName: MiniMax OpenAI Compatible
-    surfaceId: openai-compatible
-- observability:
+  quotaProbeId: minimax-remains
+- surfaceId: anthropic
+  productInfoId: minimax
+  api:
+    apiEndpoints:
+    - protocol: PROTOCOL_ANTHROPIC
+      baseUrl: https://api.minimaxi.com/anthropic
+  observability:
     profiles:
-    - activeQuery:
+    - quotaQuery:
         collectorId: minimax-remains
         minimumPollInterval: 300s
       displayName: MiniMax API Key Quota
@@ -237,7 +208,7 @@ providerBindings:
         - gen_ai.provider.quota.remaining
         queryId: minimax_model_remaining_count
         resultKind: METRIC_QUERY_RESULT_KIND_VECTOR
-        statement: max by (owner_kind, owner_id, vendor_id, access_target_id, provider_id,
+        statement: max by (owner_kind, owner_id, vendor_id, provider_id,
           model_id, resource, window) (gen_ai_provider_quota_remaining{vendor_id="minimax"})
       - displayName: MiniMax Total Count
         language: METRIC_QUERY_LANGUAGE_PROMQL
@@ -245,15 +216,12 @@ providerBindings:
         - gen_ai.provider.quota.limit
         queryId: minimax_model_total_count
         resultKind: METRIC_QUERY_RESULT_KIND_VECTOR
-        statement: max by (owner_kind, owner_id, vendor_id, access_target_id, provider_id,
+        statement: max by (owner_kind, owner_id, vendor_id, provider_id,
           model_id, resource, window) (gen_ai_provider_quota_limit{vendor_id="minimax"})
       metrics:
       - attributes:
         - description: Stable vendor identifier.
           name: vendor_id
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - description: Stable access target identifier.
-          name: access_target_id
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
         - description: Stable provider identifier.
           name: provider_id
@@ -289,13 +257,10 @@ providerBindings:
         description: Remaining MiniMax coding plan quota count for one supported model.
         kind: OBSERVABILITY_METRIC_KIND_GAUGE
         name: gen_ai.provider.quota.remaining
-        unit: '{count}'
+        unit: "{count}"
       - attributes:
         - description: Stable vendor identifier.
           name: vendor_id
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - description: Stable access target identifier.
-          name: access_target_id
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
         - description: Stable provider identifier.
           name: provider_id
@@ -331,13 +296,10 @@ providerBindings:
         description: Total MiniMax coding plan quota count for one supported model.
         kind: OBSERVABILITY_METRIC_KIND_GAUGE
         name: gen_ai.provider.quota.limit
-        unit: '{count}'
+        unit: "{count}"
       - attributes:
         - description: Stable vendor identifier.
           name: vendor_id
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - description: Stable access target identifier.
-          name: access_target_id
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
         - description: Stable provider identifier.
           name: provider_id
@@ -374,13 +336,10 @@ providerBindings:
           model.
         kind: OBSERVABILITY_METRIC_KIND_GAUGE
         name: gen_ai.provider.quota.remaining.fraction.percent
-        unit: '%'
+        unit: "%"
       - attributes:
         - description: Stable vendor identifier.
           name: vendor_id
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - description: Stable access target identifier.
-          name: access_target_id
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
         - description: Stable provider identifier.
           name: provider_id
@@ -418,33 +377,4 @@ providerBindings:
         name: gen_ai.provider.quota.reset.timestamp.seconds
         unit: s
       profileId: api_key_quota
-  providerBinding:
-    surfaceId: anthropic
-  providerCard:
-    enabled: true
-  surfaceTemplates:
-  - bootstrapCatalog:
-      models:
-      - modelRef:
-          modelId: MiniMax-M2.7
-          vendorId: minimax
-        providerModelId: MiniMax-M2.7
-      - modelRef:
-          modelId: MiniMax-M2.7-highspeed
-          vendorId: minimax
-        providerModelId: MiniMax-M2.7-highspeed
-      - modelRef:
-          modelId: MiniMax-M2.5
-          vendorId: minimax
-        providerModelId: MiniMax-M2.5
-      - modelRef:
-          modelId: MiniMax-M2.5-highspeed
-          vendorId: minimax
-        providerModelId: MiniMax-M2.5-highspeed
-      source: CATALOG_SOURCE_VENDOR_PRESET
-    runtime:
-      api:
-        baseUrl: https://api.minimaxi.com/anthropic
-        protocol: PROTOCOL_ANTHROPIC
-      displayName: MiniMax Anthropic
-    surfaceId: anthropic
+  quotaProbeId: minimax-remains

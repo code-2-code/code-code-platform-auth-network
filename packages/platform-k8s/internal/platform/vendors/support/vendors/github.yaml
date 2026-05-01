@@ -1,20 +1,9 @@
 ---
-providerBindings:
-- modelDiscovery:
-    activeDiscovery:
-      operation:
-        path: models
-        responseKind: MODEL_CATALOG_DISCOVERY_RESPONSE_KIND_OPENAI_MODELS
-      surfaceIds:
-      - openai-compatible
-    authorityPriority: 650
-    collectorId: github-models
-  providerBinding:
-    surfaceId: openai-compatible
-  surfaceTemplates:
-  - runtime:
-      api:
-        baseUrl: https://models.github.ai/inference
-        protocol: PROTOCOL_OPENAI_COMPATIBLE
-      displayName: GitHub Models Inference
-    surfaceId: openai-compatible
+surfaces:
+- surfaceId: openai-compatible
+  productInfoId: github
+  api:
+    apiEndpoints:
+    - protocol: PROTOCOL_OPENAI_COMPATIBLE
+      baseUrl: https://models.github.ai/inference
+  modelCatalogProbeId: github-models

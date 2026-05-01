@@ -2,27 +2,26 @@ package authservice
 
 import (
 	"context"
-	"fmt"
-	"sort"
 	"strings"
 
 	"code-code.internal/go-contract/domainerror"
 	observabilityv1 "code-code.internal/go-contract/observability/v1"
+	"code-code.internal/platform-k8s/internal/sessioncookie"
 )
 
 type SessionInputFormResolver interface {
-	ResolveSessionInputForm(ctx context.Context, schemaID string) (*observabilityv1.ActiveQueryInputForm, bool, error)
+	ResolveSessionInputForm(ctx context.Context, schemaID string) (*observabilityv1.QuotaQueryInputForm, bool, error)
 }
 
 func normalizeSessionInputValues(
-	form *observabilityv1.ActiveQueryInputForm,
+	form *observabilityv1.QuotaQueryInputForm,
 	values map[string]string,
 	existing map[string]string,
 ) (map[string]string, []string, error) {
 	if form == nil {
 		return trimCredentialValues(values), nil, nil
 	}
-	fields := map[string]*observabilityv1.ActiveQueryInputField{}
+	fields := map[string]*observabilityv1.QuotaQueryInputField{}
 	for _, field := range form.GetFields() {
 		if fieldID := strings.TrimSpace(field.GetFieldId()); fieldID != "" {
 			fields[fieldID] = field
@@ -46,9 +45,9 @@ func normalizeSessionInputValues(
 			continue
 		}
 		switch field.GetPersistence() {
-		case observabilityv1.ActiveQueryInputPersistence_ACTIVE_QUERY_INPUT_PERSISTENCE_STORED_MATERIAL:
+		case observabilityv1.QuotaQueryInputPersistence_QUOTA_QUERY_INPUT_PERSISTENCE_STORED_MATERIAL:
 			out[fieldID] = value
-		case observabilityv1.ActiveQueryInputPersistence_ACTIVE_QUERY_INPUT_PERSISTENCE_TRANSIENT:
+		case observabilityv1.QuotaQueryInputPersistence_QUOTA_QUERY_INPUT_PERSISTENCE_TRANSIENT:
 			if err := applyTransientSessionInput(out, values, existing, field, value); err != nil {
 				return nil, nil, err
 			}
@@ -64,12 +63,12 @@ func applyTransientSessionInput(
 	out map[string]string,
 	values map[string]string,
 	existing map[string]string,
-	field *observabilityv1.ActiveQueryInputField,
+	field *observabilityv1.QuotaQueryInputField,
 	value string,
 ) error {
 	targetFieldID := strings.TrimSpace(field.GetTargetFieldId())
 	switch field.GetTransform() {
-	case observabilityv1.ActiveQueryInputValueTransform_ACTIVE_QUERY_INPUT_VALUE_TRANSFORM_MERGE_SET_COOKIE:
+	case observabilityv1.QuotaQueryInputValueTransform_QUOTA_QUERY_INPUT_VALUE_TRANSFORM_MERGE_SET_COOKIE:
 		base := strings.TrimSpace(out[targetFieldID])
 		if base == "" {
 			base = strings.TrimSpace(values[targetFieldID])
@@ -97,10 +96,10 @@ func applyTransientSessionInput(
 	}
 }
 
-func sessionInputRequiredKeys(form *observabilityv1.ActiveQueryInputForm) []string {
+func sessionInputRequiredKeys(form *observabilityv1.QuotaQueryInputForm) []string {
 	required := make([]string, 0, len(form.GetFields()))
 	for _, field := range form.GetFields() {
-		if field.GetPersistence() != observabilityv1.ActiveQueryInputPersistence_ACTIVE_QUERY_INPUT_PERSISTENCE_STORED_MATERIAL || !field.GetRequired() {
+		if field.GetPersistence() != observabilityv1.QuotaQueryInputPersistence_QUOTA_QUERY_INPUT_PERSISTENCE_STORED_MATERIAL || !field.GetRequired() {
 			continue
 		}
 		if fieldID := strings.TrimSpace(field.GetFieldId()); fieldID != "" {
@@ -111,45 +110,5 @@ func sessionInputRequiredKeys(form *observabilityv1.ActiveQueryInputForm) []stri
 }
 
 func mergeCookieHeader(requestCookie string, responseSetCookie string) string {
-	cookies := map[string]string{}
-	for _, pair := range strings.Split(requestCookie, ";") {
-		applyCookiePair(cookies, pair)
-	}
-	for _, line := range strings.Split(responseSetCookie, "\n") {
-		headerValue := strings.TrimSpace(line)
-		if strings.HasPrefix(strings.ToLower(headerValue), "set-cookie:") {
-			headerValue = strings.TrimSpace(headerValue[len("set-cookie:"):])
-		}
-		if index := strings.Index(headerValue, ";"); index >= 0 {
-			headerValue = headerValue[:index]
-		}
-		applyCookiePair(cookies, headerValue)
-	}
-	keys := make([]string, 0, len(cookies))
-	for key := range cookies {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-	parts := make([]string, 0, len(keys))
-	for _, key := range keys {
-		parts = append(parts, fmt.Sprintf("%s=%s", key, cookies[key]))
-	}
-	return strings.Join(parts, "; ")
-}
-
-func applyCookiePair(cookies map[string]string, pair string) {
-	key, value, ok := strings.Cut(strings.TrimSpace(pair), "=")
-	if !ok {
-		return
-	}
-	key = strings.TrimSpace(key)
-	value = strings.TrimSpace(value)
-	if key == "" {
-		return
-	}
-	if value == "" {
-		delete(cookies, key)
-		return
-	}
-	cookies[key] = value
+	return sessioncookie.Merge(requestCookie, responseSetCookie)
 }

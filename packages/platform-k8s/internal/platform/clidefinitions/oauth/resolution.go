@@ -6,11 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	modelcatalogdiscoveryv1 "code-code.internal/go-contract/model_catalog_discovery/v1"
 	supportv1 "code-code.internal/go-contract/platform/support/v1"
-	providerv1 "code-code.internal/go-contract/provider/v1"
 	credentialcontract "code-code.internal/platform-contract/credential"
-	"google.golang.org/protobuf/proto"
 )
 
 // ResolveOAuthProjection applies CLI-declared artifact projection to one
@@ -51,76 +48,6 @@ func ResolveOAuthProjection(cli *supportv1.CLI, artifact *credentialcontract.OAu
 		}
 	}
 	return resolved, nil
-}
-
-// ResolveOAuthModelCatalog resolves the default CLI OAuth model catalog.
-func ResolveOAuthModelCatalog(cli *supportv1.CLI) (*providerv1.ProviderModelCatalog, error) {
-	if cli == nil || cli.GetOauth() == nil || cli.GetOauth().GetModelCatalog() == nil {
-		return nil, nil
-	}
-	selected := cli.GetOauth().GetModelCatalog().GetDefaultCatalog()
-	if selected == nil {
-		return nil, nil
-	}
-	catalog := proto.Clone(selected).(*providerv1.ProviderModelCatalog)
-	normalizeOAuthCatalogModels(catalog)
-	if catalog.GetSource() == providerv1.CatalogSource_CATALOG_SOURCE_UNSPECIFIED && len(catalog.GetModels()) > 0 {
-		catalog.Source = providerv1.CatalogSource_CATALOG_SOURCE_FALLBACK_CONFIG
-	}
-	runtime := &providerv1.ProviderSurfaceRuntime{
-		DisplayName: oauthCatalogValidationDisplayName(cli),
-		Origin:      providerv1.ProviderSurfaceOrigin_PROVIDER_SURFACE_ORIGIN_DERIVED,
-		Catalog:     catalog,
-		Access: &providerv1.ProviderSurfaceRuntime_Cli{
-			Cli: &providerv1.ProviderCLISurfaceRuntime{CliId: strings.TrimSpace(cli.GetCliId())},
-		},
-	}
-	if err := providerv1.ValidateProviderSurfaceRuntime(runtime); err != nil {
-		return nil, fmt.Errorf("platformk8s/clidefinitions: invalid cli oauth model catalog: %w", err)
-	}
-	return catalog, nil
-}
-
-func ResolveOAuthModelCatalogDiscovery(cli *supportv1.CLI) (*supportv1.OAuthModelCatalogDiscovery, *modelcatalogdiscoveryv1.ModelCatalogDiscoveryOperation, error) {
-	if cli == nil || cli.GetOauth() == nil || cli.GetOauth().GetModelCatalog() == nil {
-		return nil, nil, nil
-	}
-	configured := cli.GetOauth().GetModelCatalog().GetAuthenticatedDiscovery()
-	if configured == nil || configured.GetOperation() == nil {
-		return nil, nil, nil
-	}
-	operation := proto.Clone(configured.GetOperation()).(*modelcatalogdiscoveryv1.ModelCatalogDiscoveryOperation)
-	if strings.TrimSpace(operation.GetPath()) == "" {
-		return nil, nil, fmt.Errorf("platformk8s/clidefinitions: cli oauth model catalog operation path is empty")
-	}
-	if operation.GetResponseKind() == modelcatalogdiscoveryv1.ModelCatalogDiscoveryResponseKind_MODEL_CATALOG_DISCOVERY_RESPONSE_KIND_UNSPECIFIED {
-		return nil, nil, fmt.Errorf("platformk8s/clidefinitions: cli oauth model catalog operation response kind is unspecified")
-	}
-	return proto.Clone(configured).(*supportv1.OAuthModelCatalogDiscovery), operation, nil
-}
-
-func normalizeOAuthCatalogModels(catalog *providerv1.ProviderModelCatalog) {
-	if catalog == nil {
-		return
-	}
-	for _, model := range catalog.GetModels() {
-		if model == nil || strings.TrimSpace(model.GetProviderModelId()) != "" {
-			continue
-		}
-		if fallbackProviderModelID := strings.TrimSpace(model.GetModelRef().GetModelId()); fallbackProviderModelID != "" {
-			model.ProviderModelId = fallbackProviderModelID
-		}
-	}
-}
-
-func oauthCatalogValidationDisplayName(pkg *supportv1.CLI) string {
-	if name := strings.TrimSpace(pkg.GetDisplayName()); name != "" {
-		return name
-	}
-	if cliID := strings.TrimSpace(pkg.GetCliId()); cliID != "" {
-		return cliID
-	}
-	return "oauth-catalog-validation"
 }
 
 func projectionValue(source supportv1.OAuthArtifactSource, pointer string, artifact *credentialcontract.OAuthArtifact) (string, error) {

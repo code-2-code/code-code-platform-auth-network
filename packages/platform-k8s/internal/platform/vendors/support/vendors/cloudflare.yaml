@@ -1,0 +1,8 @@
+---
+surfaces:
+- surfaceId: workers-ai
+  productInfoId: cloudflare
+  api:
+    apiEndpoints:
+    - protocol: PROTOCOL_OPENAI_COMPATIBLE
+      baseUrl: https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1

@@ -9,7 +9,10 @@ import (
 	"time"
 
 	"code-code.internal/platform-k8s/internal/egressauth"
+	"code-code.internal/platform-k8s/internal/sessioncookie"
 )
+
+const pageAPIKey = "AIzaSyDdP816MREB3SkjZO04QXbjsigfcI0GWOs"
 
 func ReplaceHeader(input egressauth.ReplacementInput) (string, bool) {
 	headerName := normalizeMaterialKey(input.HeaderName)
@@ -29,7 +32,7 @@ func ReplaceHeader(input egressauth.ReplacementInput) (string, bool) {
 		}
 		return strings.ReplaceAll(current, egressauth.Placeholder, token), true
 	case "x_goog_api_key":
-		return replacementValue(current, firstMaterial(input.Material, "page_api_key", "x_goog_api_key", egressauth.MaterialKeyAPIKey))
+		return replacementValue(current, pageAPIKey)
 	default:
 		base := input
 		base.AdapterID = egressauth.AuthAdapterSessionCookieID
@@ -121,15 +124,6 @@ func replacementValue(current string, token string) (string, bool) {
 	return "", false
 }
 
-func firstMaterial(material map[string]string, keys ...string) string {
-	for _, key := range keys {
-		if value := materialByKey(material, key); value != "" {
-			return value
-		}
-	}
-	return ""
-}
-
 func materialByKey(material map[string]string, key string) string {
 	key = normalizeMaterialKey(key)
 	for currentKey, value := range material {
@@ -151,27 +145,5 @@ func cookieHeaderMaterial(material map[string]string) string {
 }
 
 func cookieValue(header string, name string) string {
-	name = strings.TrimSpace(name)
-	for key, value := range parseCookieHeader(header) {
-		if key == name {
-			return value
-		}
-	}
-	return ""
-}
-
-func parseCookieHeader(header string) map[string]string {
-	jar := map[string]string{}
-	for _, part := range strings.Split(header, ";") {
-		key, value, ok := strings.Cut(strings.TrimSpace(part), "=")
-		if !ok {
-			continue
-		}
-		key = strings.TrimSpace(key)
-		value = strings.TrimSpace(value)
-		if key != "" && value != "" {
-			jar[key] = value
-		}
-	}
-	return jar
+	return sessioncookie.Value(header, name)
 }

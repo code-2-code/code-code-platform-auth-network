@@ -25,7 +25,7 @@ func TestSupportListReturnsRegisteredVendors(t *testing.T) {
 	if item.GetVendor().GetDisplayName() != "OpenAI" {
 		t.Fatalf("display_name = %q, want OpenAI", item.GetVendor().GetDisplayName())
 	}
-	if len(item.GetProviderBindings()) == 0 {
-		t.Fatal("openai provider_bindings = 0, want registered bindings")
+	if len(item.GetSurfaces()) == 0 {
+		t.Fatal("openai surfaces = 0, want registered surfaces")
 	}
 }

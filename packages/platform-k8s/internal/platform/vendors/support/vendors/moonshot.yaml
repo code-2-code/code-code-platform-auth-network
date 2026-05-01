@@ -1,11 +1,8 @@
 ---
-providerBindings:
-- providerBinding:
-    surfaceId: openai-compatible
-  surfaceTemplates:
-  - runtime:
-      api:
-        baseUrl: https://api.moonshot.cn/v1
-        protocol: PROTOCOL_OPENAI_COMPATIBLE
-      displayName: Moonshot OpenAI Compatible
-    surfaceId: openai-compatible
+surfaces:
+- surfaceId: openai-compatible
+  productInfoId: moonshot
+  api:
+    apiEndpoints:
+    - protocol: PROTOCOL_OPENAI_COMPATIBLE
+      baseUrl: https://api.moonshot.cn/v1

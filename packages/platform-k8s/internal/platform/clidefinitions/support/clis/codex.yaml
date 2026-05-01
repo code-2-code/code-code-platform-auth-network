@@ -115,19 +115,16 @@ oauth:
           description: Terminal session phase.
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
       - name: gen_ai.provider.cli.oauth.credential.expiry.timestamp.seconds
-        description: Runtime-target scoped OAuth access token expiry timestamp.
+        description: Provider-scoped OAuth access token expiry timestamp.
         unit: s
         kind: OBSERVABILITY_METRIC_KIND_GAUGE
         category: OBSERVABILITY_METRIC_CATEGORY_QUOTA
         attributes:
         - name: cli_id
           description: Stable CLI identifier.
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - name: access_target_id
-          description: Stable access target identifier.
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
       - name: gen_ai.provider.cli.oauth.next.refresh.timestamp.seconds
-        description: Runtime-target scoped OAuth next refresh timestamp.
+        description: Provider-scoped OAuth next refresh timestamp.
         unit: s
         kind: OBSERVABILITY_METRIC_KIND_GAUGE
         category: OBSERVABILITY_METRIC_CATEGORY_QUOTA
@@ -135,11 +132,8 @@ oauth:
         - name: cli_id
           description: Stable CLI identifier.
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - name: access_target_id
-          description: Stable access target identifier.
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
       - name: gen_ai.provider.cli.oauth.last.refreshed.timestamp.seconds
-        description: Runtime-target scoped OAuth last refreshed timestamp.
+        description: Provider-scoped OAuth last refreshed timestamp.
         unit: s
         kind: OBSERVABILITY_METRIC_KIND_GAUGE
         category: OBSERVABILITY_METRIC_CATEGORY_USAGE
@@ -147,11 +141,8 @@ oauth:
         - name: cli_id
           description: Stable CLI identifier.
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - name: access_target_id
-          description: Stable access target identifier.
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
       - name: gen_ai.provider.cli.oauth.credential.generation
-        description: Runtime-target scoped OAuth credential generation.
+        description: Provider-scoped OAuth credential generation.
         unit: "{generation}"
         kind: OBSERVABILITY_METRIC_KIND_GAUGE
         category: OBSERVABILITY_METRIC_CATEGORY_USAGE
@@ -159,11 +150,8 @@ oauth:
         - name: cli_id
           description: Stable CLI identifier.
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - name: access_target_id
-          description: Stable access target identifier.
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
       - name: gen_ai.provider.cli.oauth.refresh.ready
-        description: Whether runtime-target OAuth refresh status is ready.
+        description: Whether provider OAuth refresh status is ready.
         unit: "{state}"
         kind: OBSERVABILITY_METRIC_KIND_GAUGE
         category: OBSERVABILITY_METRIC_CATEGORY_USAGE
@@ -171,11 +159,8 @@ oauth:
         - name: cli_id
           description: Stable CLI identifier.
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - name: access_target_id
-          description: Stable access target identifier.
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
       - name: gen_ai.provider.cli.oauth.refresh.attempts.total
-        description: Count of CLI OAuth refresh attempts scoped to bound access targets.
+        description: Count of CLI OAuth refresh attempts scoped to bound providers.
         unit: "{attempt}"
         kind: OBSERVABILITY_METRIC_KIND_COUNTER
         category: OBSERVABILITY_METRIC_CATEGORY_USAGE
@@ -183,13 +168,10 @@ oauth:
         - name: cli_id
           description: Stable CLI identifier.
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - name: access_target_id
-          description: Stable access target identifier.
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
         - name: result
           description: Refresh result category.
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-      activeQuery:
+      quotaQuery:
         minimumPollInterval: 1800s
         materialReadFields:
         - account_id
@@ -204,9 +186,6 @@ oauth:
         attributes:
         - name: cli_id
           description: Stable CLI identifier.
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - name: access_target_id
-          description: Stable access target identifier.
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
         - name: host
           description: Matched upstream host.
@@ -226,9 +205,6 @@ oauth:
         - name: cli_id
           description: Stable CLI identifier.
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - name: access_target_id
-          description: Stable access target identifier.
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
         - name: host
           description: Matched upstream host.
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
@@ -247,9 +223,6 @@ oauth:
         - name: cli_id
           description: Stable CLI identifier.
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - name: access_target_id
-          description: Stable access target identifier.
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
         - name: host
           description: Matched upstream host.
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
@@ -264,9 +237,6 @@ oauth:
         attributes:
         - name: cli_id
           description: Stable CLI identifier.
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - name: access_target_id
-          description: Stable access target identifier.
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
         - name: host
           description: Matched upstream host.
@@ -283,9 +253,6 @@ oauth:
         - name: cli_id
           description: Stable CLI identifier.
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - name: access_target_id
-          description: Stable access target identifier.
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
       - name: gen_ai.provider.cli.oauth.codex.primary.window.used.percent
         description: Codex primary quota window used percentage.
         unit: "%"
@@ -294,9 +261,6 @@ oauth:
         attributes:
         - name: cli_id
           description: Stable CLI identifier.
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - name: access_target_id
-          description: Stable access target identifier.
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
       - name: gen_ai.provider.cli.oauth.codex.primary.window.reset.timestamp.seconds
         description: Codex primary quota window reset timestamp.
@@ -307,9 +271,6 @@ oauth:
         - name: cli_id
           description: Stable CLI identifier.
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - name: access_target_id
-          description: Stable access target identifier.
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
       - name: gen_ai.provider.cli.oauth.codex.primary.window.duration.minutes
         description: Codex primary quota window duration in minutes.
         unit: min
@@ -318,9 +279,6 @@ oauth:
         attributes:
         - name: cli_id
           description: Stable CLI identifier.
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - name: access_target_id
-          description: Stable access target identifier.
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
       - name: gen_ai.provider.cli.oauth.codex.secondary.window.used.percent
         description: Codex secondary quota window used percentage.
@@ -331,9 +289,6 @@ oauth:
         - name: cli_id
           description: Stable CLI identifier.
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - name: access_target_id
-          description: Stable access target identifier.
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
       - name: gen_ai.provider.cli.oauth.codex.secondary.window.reset.timestamp.seconds
         description: Codex secondary quota window reset timestamp.
         unit: s
@@ -342,9 +297,6 @@ oauth:
         attributes:
         - name: cli_id
           description: Stable CLI identifier.
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - name: access_target_id
-          description: Stable access target identifier.
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
       - name: gen_ai.provider.cli.oauth.codex.secondary.window.duration.minutes
         description: Codex secondary quota window duration in minutes.
@@ -355,9 +307,6 @@ oauth:
         - name: cli_id
           description: Stable CLI identifier.
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - name: access_target_id
-          description: Stable access target identifier.
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
       - name: gen_ai.provider.cli.oauth.codex.plan.type.code
         description: Codex account plan type exported as a Codex-specific numeric
           code.
@@ -367,9 +316,6 @@ oauth:
         attributes:
         - name: cli_id
           description: Stable CLI identifier.
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - name: access_target_id
-          description: Stable access target identifier.
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
       passiveHttp:
         capturePoint: TELEMETRY_CAPTURE_POINT_EGRESS
@@ -389,14 +335,14 @@ oauth:
       - queryId: codex_primary_window_used_percent
         displayName: Codex Primary Window Used Percent
         language: METRIC_QUERY_LANGUAGE_PROMQL
-        statement: max by (cli_id, access_target_id) (gen_ai_provider_cli_oauth_codex_primary_window_used_percent)
+        statement: max by (cli_id) (gen_ai_provider_cli_oauth_codex_primary_window_used_percent)
         metricNames:
         - gen_ai.provider.cli.oauth.codex.primary.window.used.percent
         resultKind: METRIC_QUERY_RESULT_KIND_VECTOR
       - queryId: codex_secondary_window_used_percent
         displayName: Codex Secondary Window Used Percent
         language: METRIC_QUERY_LANGUAGE_PROMQL
-        statement: max by (cli_id, access_target_id) (gen_ai_provider_cli_oauth_codex_secondary_window_used_percent)
+        statement: max by (cli_id) (gen_ai_provider_cli_oauth_codex_secondary_window_used_percent)
         metricNames:
         - gen_ai.provider.cli.oauth.codex.secondary.window.used.percent
         resultKind: METRIC_QUERY_RESULT_KIND_VECTOR
@@ -486,8 +432,7 @@ oauth:
       localhostListenPort: 1455
       localhostCallbackPath: "/auth/callback"
     requiresState: true
-  providerBinding:
-    surfaceId: openai-compatible
+  surfaceId: openai-compatible
 officialVersionSource:
   npmDistTag:
     packageName: "@openai/codex"

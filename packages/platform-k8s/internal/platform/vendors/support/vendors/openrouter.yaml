@@ -1,15 +1,18 @@
 ---
-providerBindings:
-- observability:
+surfaces:
+- surfaceId: openai-compatible
+  productInfoId: openrouter
+  api:
+    apiEndpoints:
+    - protocol: PROTOCOL_OPENAI_COMPATIBLE
+      baseUrl: https://openrouter.ai/api/v1
+  observability:
     profiles:
     - displayName: OpenRouter Rate Limits
       metrics:
       - attributes:
         - description: Stable vendor identifier.
           name: vendor_id
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - description: Stable access target identifier.
-          name: access_target_id
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
         - description: Stable provider identifier.
           name: provider_id
@@ -21,13 +24,10 @@ providerBindings:
         description: OpenRouter rate limit ceiling for one resource type.
         kind: OBSERVABILITY_METRIC_KIND_GAUGE
         name: gen_ai.provider.runtime.rate_limit.limit
-        unit: "1"
+        unit: '1'
       - attributes:
         - description: Stable vendor identifier.
           name: vendor_id
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - description: Stable access target identifier.
-          name: access_target_id
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
         - description: Stable provider identifier.
           name: provider_id
@@ -39,7 +39,7 @@ providerBindings:
         description: OpenRouter remaining rate limit for one resource type.
         kind: OBSERVABILITY_METRIC_KIND_GAUGE
         name: gen_ai.provider.runtime.rate_limit.remaining
-        unit: "1"
+        unit: '1'
       passiveHttp:
         capturePoint: TELEMETRY_CAPTURE_POINT_EGRESS
         emitAccessLog: true
@@ -79,7 +79,7 @@ providerBindings:
           source: HTTP_HEADER_SOURCE_RESPONSE
           valueType: HEADER_VALUE_TYPE_INT64
       profileId: openrouter_ratelimits
-    - activeQuery:
+    - quotaQuery:
         collectorId: openrouter-quotas
         minimumPollInterval: 300s
       displayName: OpenRouter Usage
@@ -87,9 +87,6 @@ providerBindings:
       - attributes:
         - description: Stable vendor identifier.
           name: vendor_id
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - description: Stable access target identifier.
-          name: access_target_id
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
         - description: Stable provider identifier.
           name: provider_id
@@ -108,13 +105,10 @@ providerBindings:
           window.
         kind: OBSERVABILITY_METRIC_KIND_GAUGE
         name: gen_ai.provider.usage.requests.count
-        unit: '{request}'
+        unit: "{request}"
       - attributes:
         - description: Stable vendor identifier.
           name: vendor_id
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - description: Stable access target identifier.
-          name: access_target_id
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
         - description: Stable provider identifier.
           name: provider_id
@@ -137,9 +131,6 @@ providerBindings:
         - description: Stable vendor identifier.
           name: vendor_id
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - description: Stable access target identifier.
-          name: access_target_id
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
         - description: Stable provider identifier.
           name: provider_id
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
@@ -160,16 +151,6 @@ providerBindings:
           activity window.
         kind: OBSERVABILITY_METRIC_KIND_GAUGE
         name: gen_ai.provider.usage.tokens.count
-        unit: '{token}'
+        unit: "{token}"
       profileId: openrouter_usage
-  providerBinding:
-    surfaceId: openai-compatible
-  providerCard:
-    enabled: true
-  surfaceTemplates:
-  - runtime:
-      api:
-        baseUrl: https://openrouter.ai/api/v1
-        protocol: PROTOCOL_OPENAI_COMPATIBLE
-      displayName: OpenRouter OpenAI Compatible
-    surfaceId: openai-compatible
+  quotaProbeId: openrouter-quotas

@@ -60,6 +60,14 @@ policies:
           - headerName: authorization
           - headerName: cookie
           - headerName: x-goog-api-key
+  - policyId: vendor.mistral-admin-session
+    adapterId: mistral-admin-session
+    extensionProviderName: code-code-egress-auth-session
+    materializations:
+      - materializationKey: vendor.mistral-admin-session
+        requestReplacementRules:
+          - headerName: cookie
+          - headerName: x-csrftoken
   - policyId: vendor.bearer-session
     adapterId: bearer-session
     extensionProviderName: code-code-egress-auth-bearer

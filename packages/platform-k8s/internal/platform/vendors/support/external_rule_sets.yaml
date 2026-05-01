@@ -95,6 +95,17 @@ ruleSets:
         sourceServiceAccounts:
           - code-code/platform-provider-service
         proxyEndpointId: preset-proxy
+      - ruleId: mistral-admin
+        destinationId: vendor.mistral.admin
+        displayName: Mistral Admin
+        hostExact: admin.mistral.ai
+        port: 443
+        protocol: tls
+        resolution: dns
+        sourceServiceAccounts:
+          - code-code/platform-auth-service
+          - code-code/platform-provider-service
+        proxyEndpointId: preset-proxy
       - ruleId: google-aistudio-rpc
         destinationId: vendor.google.aistudio.rpc
         displayName: Google AI Studio RPC

@@ -1,11 +1,12 @@
 ---
-providerBindings:
-- modelDiscovery:
-    activeDiscovery:
-      surfaceIds:
-      - openai-compatible
-    authorityPriority: 650
-    collectorId: nvidia-integrate-models
+surfaces:
+- surfaceId: openai-compatible
+  productInfoId: nvidia-integrate
+  api:
+    apiEndpoints:
+    - protocol: PROTOCOL_OPENAI_COMPATIBLE
+      baseUrl: https://integrate.api.nvidia.com/v1
+  modelCatalogProbeId: nvidia-integrate-models
   observability:
     profiles:
     - displayName: NVIDIA Rate Limits
@@ -13,9 +14,6 @@ providerBindings:
       - attributes:
         - description: Stable vendor identifier.
           name: vendor_id
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - description: Stable access target identifier.
-          name: access_target_id
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
         - description: Stable provider identifier.
           name: provider_id
@@ -30,13 +28,10 @@ providerBindings:
         description: NVIDIA rate limit ceiling for one time window and resource type.
         kind: OBSERVABILITY_METRIC_KIND_GAUGE
         name: gen_ai.provider.runtime.rate_limit.limit
-        unit: "1"
+        unit: '1'
       - attributes:
         - description: Stable vendor identifier.
           name: vendor_id
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - description: Stable access target identifier.
-          name: access_target_id
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
         - description: Stable provider identifier.
           name: provider_id
@@ -52,7 +47,7 @@ providerBindings:
           type.
         kind: OBSERVABILITY_METRIC_KIND_GAUGE
         name: gen_ai.provider.runtime.rate_limit.remaining
-        unit: "1"
+        unit: '1'
       passiveHttp:
         capturePoint: TELEMETRY_CAPTURE_POINT_EGRESS
         emitAccessLog: true
@@ -172,12 +167,3 @@ providerBindings:
           source: HTTP_HEADER_SOURCE_RESPONSE
           valueType: HEADER_VALUE_TYPE_INT64
       profileId: nvidia_ratelimits
-  providerBinding:
-    surfaceId: openai-compatible
-  surfaceTemplates:
-  - runtime:
-      api:
-        baseUrl: https://integrate.api.nvidia.com/v1
-        protocol: PROTOCOL_OPENAI_COMPATIBLE
-      displayName: NVIDIA Integrate OpenAI Compatible
-    surfaceId: openai-compatible

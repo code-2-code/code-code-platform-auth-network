@@ -24,9 +24,6 @@ func ValidateOAuthClientIdentity(pkg *supportv1.CLI) error {
 	if identity == nil {
 		return nil
 	}
-	if err := validateClientIdentityTemplate("model_catalog_user_agent_template", identity.GetModelCatalogUserAgentTemplate(), officialVersionSource); err != nil {
-		return fmt.Errorf("platformk8s: invalid cli oauth client identity for %q: %w", pkg.GetCliId(), err)
-	}
 	if err := validateClientIdentityTemplate("observability_user_agent_template", identity.GetObservabilityUserAgentTemplate(), officialVersionSource); err != nil {
 		return fmt.Errorf("platformk8s: invalid cli oauth client identity for %q: %w", pkg.GetCliId(), err)
 	}

@@ -6,7 +6,6 @@ import (
 	"slices"
 	"strings"
 
-	observabilityv1 "code-code.internal/go-contract/observability/v1"
 	supportv1 "code-code.internal/go-contract/platform/support/v1"
 	vendordefinitionv1 "code-code.internal/go-contract/vendor_definition/v1"
 	vendoridentity "code-code.internal/platform-k8s/internal/platform/vendors/identity"
@@ -98,14 +97,6 @@ func materializeRegisteredVendor(
 		return nil, fmt.Errorf("platformk8s: vendor definition %q not found", vendorID)
 	}
 	next.Vendor = proto.Clone(vendor).(*vendordefinitionv1.Vendor)
-	normalizeProviderBindings(next)
-	for _, binding := range next.GetProviderBindings() {
-		if binding.GetObservability() == nil {
-			continue
-		}
-		if err := observabilityv1.ValidateCapability(binding.GetObservability()); err != nil {
-			return nil, fmt.Errorf("platformk8s: invalid vendor observability for %q: %w", next.GetVendor().GetVendorId(), err)
-		}
-	}
+	normalizeSurfaces(next)
 	return next, nil
 }

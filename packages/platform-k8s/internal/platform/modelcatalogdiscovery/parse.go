@@ -12,10 +12,14 @@ import (
 type openAIModelsPayload struct {
 	Data   []openAIModelItem `json:"data"`
 	Models []openAIModelItem `json:"models"`
+	Result []openAIModelItem `json:"result"`
 }
 
 type openAIModelItem struct {
-	ID string `json:"id"`
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Model string `json:"model"`
+	Slug  string `json:"slug"`
 }
 
 type geminiModelsPayload struct {
@@ -56,12 +60,15 @@ func ParseModelIDs(body []byte, responseKind modelcatalogdiscoveryv1.ModelCatalo
 		}
 		return collectModelIDs(
 			func() []string {
-				out := make([]string, 0, len(payload.Data)+len(payload.Models))
+				out := make([]string, 0, len(payload.Data)+len(payload.Models)+len(payload.Result))
 				for _, item := range payload.Data {
-					out = append(out, normalizeProviderModelID(item.ID))
+					out = append(out, normalizeProviderModelID(firstNonEmpty(item.ID, item.Name, item.Model, item.Slug)))
 				}
 				for _, item := range payload.Models {
-					out = append(out, normalizeProviderModelID(item.ID))
+					out = append(out, normalizeProviderModelID(firstNonEmpty(item.ID, item.Name, item.Model, item.Slug)))
+				}
+				for _, item := range payload.Result {
+					out = append(out, normalizeProviderModelID(firstNonEmpty(item.ID, item.Name, item.Model, item.Slug)))
 				}
 				return out
 			}(),
@@ -139,4 +146,14 @@ func collectModelIDs(values []string) []string {
 		out = append(out, modelID)
 	}
 	return out
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value != "" {
+			return value
+		}
+	}
+	return ""
 }

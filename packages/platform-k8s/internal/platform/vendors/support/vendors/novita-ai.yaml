@@ -1,20 +1,14 @@
 ---
-providerBindings:
-- providerBinding:
-    surfaceId: openai-compatible
-  surfaceTemplates:
-  - runtime:
-      api:
-        baseUrl: https://api.novita.ai/openai
-        protocol: PROTOCOL_OPENAI_COMPATIBLE
-      displayName: Novita AI OpenAI Compatible
-    surfaceId: openai-compatible
-- providerBinding:
-    surfaceId: anthropic
-  surfaceTemplates:
-  - runtime:
-      api:
-        baseUrl: https://api.novita.ai/anthropic
-        protocol: PROTOCOL_ANTHROPIC
-      displayName: Novita AI Anthropic Compatible
-    surfaceId: anthropic
+surfaces:
+- surfaceId: openai-compatible
+  productInfoId: novita-ai
+  api:
+    apiEndpoints:
+    - protocol: PROTOCOL_OPENAI_COMPATIBLE
+      baseUrl: https://api.novita.ai/openai
+- surfaceId: anthropic
+  productInfoId: novita-ai
+  api:
+    apiEndpoints:
+    - protocol: PROTOCOL_ANTHROPIC
+      baseUrl: https://api.novita.ai/anthropic

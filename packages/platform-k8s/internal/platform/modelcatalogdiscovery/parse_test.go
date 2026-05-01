@@ -70,3 +70,19 @@ func TestParseModelIDsOpenAIModelsNormalizesModelsPrefix(t *testing.T) {
 		t.Fatalf("modelIDs = %#v, want %#v", modelIDs, want)
 	}
 }
+
+func TestParseModelIDsOpenAIModelsAcceptsResultName(t *testing.T) {
+	t.Parallel()
+
+	modelIDs, err := ParseModelIDs(
+		[]byte(`{"result":[{"name":"@cf/meta/llama-3.1-8b-instruct"},{"name":"@cf/meta/llama-3.1-8b-instruct"},{"name":"@cf/mistral/mistral-small-3.1-24b-instruct"}]}`),
+		modelcatalogdiscoveryv1.ModelCatalogDiscoveryResponseKind_MODEL_CATALOG_DISCOVERY_RESPONSE_KIND_OPENAI_MODELS,
+	)
+	if err != nil {
+		t.Fatalf("ParseModelIDs() error = %v", err)
+	}
+	want := []string{"@cf/meta/llama-3.1-8b-instruct", "@cf/mistral/mistral-small-3.1-24b-instruct"}
+	if !reflect.DeepEqual(modelIDs, want) {
+		t.Fatalf("modelIDs = %#v, want %#v", modelIDs, want)
+	}
+}

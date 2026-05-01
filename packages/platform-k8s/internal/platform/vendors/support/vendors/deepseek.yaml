@@ -1,11 +1,8 @@
 ---
-providerBindings:
-- providerBinding:
-    surfaceId: openai-compatible
-  surfaceTemplates:
-  - runtime:
-      api:
-        baseUrl: https://api.deepseek.com
-        protocol: PROTOCOL_OPENAI_COMPATIBLE
-      displayName: DeepSeek OpenAI Compatible
-    surfaceId: openai-compatible
+surfaces:
+- surfaceId: openai-compatible
+  productInfoId: deepseek
+  api:
+    apiEndpoints:
+    - protocol: PROTOCOL_OPENAI_COMPATIBLE
+      baseUrl: https://api.deepseek.com

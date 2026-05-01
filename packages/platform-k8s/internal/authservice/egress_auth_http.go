@@ -9,6 +9,7 @@ import (
 	authv1 "code-code.internal/go-contract/platform/auth/v1"
 	"code-code.internal/platform-k8s/internal/egressauth"
 	"code-code.internal/platform-k8s/internal/egressauth/adapters/googleaistudio"
+	"code-code.internal/platform-k8s/internal/egressauth/adapters/mistraladmin"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -157,6 +158,9 @@ func replaceEgressAuthHeader(request *authv1.ResolveEgressRequestHeadersRequest,
 	}
 	if strings.TrimSpace(request.GetAdapterId()) == egressauth.AuthAdapterGoogleAIStudioSessionID {
 		return googleaistudio.ReplaceHeader(input)
+	}
+	if strings.TrimSpace(request.GetAdapterId()) == mistraladmin.AdapterID {
+		return mistraladmin.ReplaceHeader(input)
 	}
 	return egressauth.ReplaceSimpleHeader(input, simpleRules...)
 }

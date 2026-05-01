@@ -1,27 +1,26 @@
 ---
-providerBindings:
-- modelDiscovery:
-    activeDiscovery:
-      operation:
-        path: models
-        responseKind: MODEL_CATALOG_DISCOVERY_RESPONSE_KIND_OPENAI_MODELS
-      surfaceIds:
-      - openai-compatible
-    authorityPriority: 650
-    collectorId: cerebras-models
+surfaces:
+- surfaceId: openai-compatible
+  productInfoId: cerebras
+  api:
+    apiEndpoints:
+    - protocol: PROTOCOL_OPENAI_COMPATIBLE
+      baseUrl: https://api.cerebras.ai/v1
+  modelCatalogProbeId: cerebras-models
   observability:
     profiles:
-    - activeQuery:
+    - quotaQuery:
         collectorId: cerebras-quotas
+        requiresQuotaCredential: true
         inputForm:
           actionLabel: Update authjs.session-token
           description: Paste the cookie value used by the Cerebras Cloud active quota
             query.
           fields:
-          - control: ACTIVE_QUERY_INPUT_CONTROL_PASSWORD
+          - control: QUOTA_QUERY_INPUT_CONTROL_PASSWORD
             fieldId: authjs_session_token
             label: authjs.session-token
-            persistence: ACTIVE_QUERY_INPUT_PERSISTENCE_STORED_MATERIAL
+            persistence: QUOTA_QUERY_INPUT_PERSISTENCE_STORED_MATERIAL
             placeholder: Paste authjs.session-token
             required: true
             sensitive: true
@@ -51,9 +50,6 @@ providerBindings:
         - description: Stable vendor identifier.
           name: vendor_id
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - description: Stable access target identifier.
-          name: access_target_id
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
         - description: Stable provider identifier.
           name: provider_id
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
@@ -74,13 +70,10 @@ providerBindings:
           and model.
         kind: OBSERVABILITY_METRIC_KIND_GAUGE
         name: gen_ai.provider.quota.limit
-        unit: "1"
+        unit: '1'
       - attributes:
         - description: Stable vendor identifier.
           name: vendor_id
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - description: Stable access target identifier.
-          name: access_target_id
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
         - description: Stable provider identifier.
           name: provider_id
@@ -102,13 +95,10 @@ providerBindings:
           and model.
         kind: OBSERVABILITY_METRIC_KIND_GAUGE
         name: gen_ai.provider.quota.usage
-        unit: "1"
+        unit: '1'
       - attributes:
         - description: Stable vendor identifier.
           name: vendor_id
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - description: Stable access target identifier.
-          name: access_target_id
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
         - description: Stable provider identifier.
           name: provider_id
@@ -130,13 +120,10 @@ providerBindings:
           and model.
         kind: OBSERVABILITY_METRIC_KIND_GAUGE
         name: gen_ai.provider.quota.remaining
-        unit: "1"
+        unit: '1'
       - attributes:
         - description: Stable vendor identifier.
           name: vendor_id
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - description: Stable access target identifier.
-          name: access_target_id
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
         - description: Stable provider identifier.
           name: provider_id
@@ -157,16 +144,6 @@ providerBindings:
         description: Cerebras quota usage percentage for one time window and model.
         kind: OBSERVABILITY_METRIC_KIND_GAUGE
         name: gen_ai.provider.quota.usage.fraction.percent
-        unit: '%'
+        unit: "%"
       profileId: cerebras_quota
-  providerBinding:
-    surfaceId: openai-compatible
-  providerCard:
-    enabled: true
-  surfaceTemplates:
-  - runtime:
-      api:
-        baseUrl: https://api.cerebras.ai/v1
-        protocol: PROTOCOL_OPENAI_COMPATIBLE
-      displayName: Cerebras OpenAI Compatible
-    surfaceId: openai-compatible
+  quotaProbeId: cerebras-quotas

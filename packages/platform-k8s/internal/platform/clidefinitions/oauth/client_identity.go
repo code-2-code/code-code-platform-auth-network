@@ -10,8 +10,8 @@ import (
 const clientVersionTemplateVariable = "${client_version}"
 
 type ResolvedOAuthClientIdentity struct {
-	ClientVersion          string
-	ModelCatalogUserAgent  string
+	ClientVersion string
+
 	ObservabilityUserAgent string
 }
 
@@ -26,7 +26,6 @@ func ResolveOAuthClientIdentity(
 		return identity
 	}
 	config := pkg.GetOauth().GetClientIdentity()
-	identity.ModelCatalogUserAgent = renderClientIdentityTemplate(config.GetModelCatalogUserAgentTemplate(), identity.ClientVersion)
 	identity.ObservabilityUserAgent = renderClientIdentityTemplate(config.GetObservabilityUserAgentTemplate(), identity.ClientVersion)
 	return identity
 }
@@ -42,8 +41,8 @@ func ApplyOAuthProbeClientIdentityHeaders(
 		headers = headers.Clone()
 	}
 	identity := ResolveOAuthClientIdentity(pkg, clientVersion)
-	if headers.Get("User-Agent") == "" && identity.ModelCatalogUserAgent != "" {
-		headers.Set("User-Agent", identity.ModelCatalogUserAgent)
+	if headers.Get("User-Agent") == "" && identity.ObservabilityUserAgent != "" {
+		headers.Set("User-Agent", identity.ObservabilityUserAgent)
 	}
 	return headers
 }

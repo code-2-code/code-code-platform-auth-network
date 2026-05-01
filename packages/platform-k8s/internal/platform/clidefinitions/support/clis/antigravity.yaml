@@ -46,9 +46,6 @@ oauth:
         - name: cli_id
           description: Stable CLI identifier.
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - name: access_target_id
-          description: Stable access target identifier.
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
         - name: model_id
           description: Provider model identifier returned by fetchAvailableModels.
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
@@ -61,13 +58,10 @@ oauth:
         - name: cli_id
           description: Stable CLI identifier.
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - name: access_target_id
-          description: Stable access target identifier.
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
         - name: model_id
           description: Provider model identifier returned by fetchAvailableModels.
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
-      activeQuery:
+      quotaQuery:
         collectorId: antigravity
         minimumPollInterval: 1800s
         credentialBackfills:
@@ -84,7 +78,7 @@ oauth:
       - queryId: antigravity_model_quota_remaining_fraction_percent
         displayName: Antigravity Model Quota Remaining Percent
         language: METRIC_QUERY_LANGUAGE_PROMQL
-        statement: max by (cli_id, access_target_id, model_id) (gen_ai_provider_cli_oauth_antigravity_model_quota_remaining_fraction_percent)
+        statement: max by (cli_id, model_id) (gen_ai_provider_cli_oauth_antigravity_model_quota_remaining_fraction_percent)
         metricNames:
         - gen_ai.provider.cli.oauth.antigravity.model.quota.remaining.fraction.percent
         resultKind: METRIC_QUERY_RESULT_KIND_VECTOR
@@ -189,8 +183,7 @@ oauth:
       localhostListenPort: 51121
       localhostCallbackPath: "/oauth-callback"
     requiresState: true
-  providerBinding:
-    surfaceId: gemini
+  surfaceId: gemini
 officialVersionSource:
   homebrewCask:
     cask: antigravity

@@ -72,20 +72,20 @@ func (a *MaterialReadAuthorizer) allowedCredentialMaterialFields(
 		return nil, status.Error(codes.InvalidArgument, "credential material read policy collector_id is empty")
 	}
 	switch policyRef.GetKind() {
-	case authv1.CredentialMaterialReadPolicyKind_CREDENTIAL_MATERIAL_READ_POLICY_KIND_CLI_OAUTH_ACTIVE_QUERY:
-		return a.allowedCLIOAuthActiveQueryMaterialFields(ctx, ownerID, collectorID)
-	case authv1.CredentialMaterialReadPolicyKind_CREDENTIAL_MATERIAL_READ_POLICY_KIND_VENDOR_ACTIVE_QUERY:
+	case authv1.CredentialMaterialReadPolicyKind_CREDENTIAL_MATERIAL_READ_POLICY_KIND_CLI_OAUTH_QUOTA_QUERY:
+		return a.allowedCLIOAuthQuotaQueryMaterialFields(ctx, ownerID, collectorID)
+	case authv1.CredentialMaterialReadPolicyKind_CREDENTIAL_MATERIAL_READ_POLICY_KIND_VENDOR_QUOTA_QUERY:
 		surfaceID := strings.TrimSpace(policyRef.GetSurfaceId())
 		if surfaceID == "" {
 			return nil, status.Error(codes.InvalidArgument, "vendor credential material read policy surface_id is empty")
 		}
-		return a.allowedVendorActiveQueryMaterialFields(ctx, ownerID, surfaceID, collectorID)
+		return a.allowedVendorQuotaQueryMaterialFields(ctx, ownerID, surfaceID, collectorID)
 	default:
 		return nil, status.Errorf(codes.InvalidArgument, "unsupported credential material read policy kind %v", policyRef.GetKind())
 	}
 }
 
-func (a *MaterialReadAuthorizer) allowedCLIOAuthActiveQueryMaterialFields(
+func (a *MaterialReadAuthorizer) allowedCLIOAuthQuotaQueryMaterialFields(
 	ctx context.Context,
 	cliID string,
 	collectorID string,
@@ -97,12 +97,16 @@ func (a *MaterialReadAuthorizer) allowedCLIOAuthActiveQueryMaterialFields(
 	if err != nil {
 		return nil, status.Errorf(codes.PermissionDenied, "cli credential material read policy %q is unavailable", cliID)
 	}
-	capability := cli.GetOauth().GetObservability()
-	fields := activeQueryReadableMaterialFields(capability, collectorID, strings.TrimSpace(cli.GetCliId()), true)
+	fields := quotaQueryReadableMaterialFields(
+		cli.GetOauth().GetObservability(),
+		collectorID,
+		strings.TrimSpace(cli.GetCliId()),
+		true,
+	)
 	return materialFieldSet(fields), nil
 }
 
-func (a *MaterialReadAuthorizer) allowedVendorActiveQueryMaterialFields(
+func (a *MaterialReadAuthorizer) allowedVendorQuotaQueryMaterialFields(
 	ctx context.Context,
 	vendorID string,
 	surfaceID string,
@@ -115,12 +119,15 @@ func (a *MaterialReadAuthorizer) allowedVendorActiveQueryMaterialFields(
 	if err != nil {
 		return nil, status.Errorf(codes.PermissionDenied, "vendor credential material read policy %q is unavailable", vendorID)
 	}
-	capability := vendorsupport.MaterializeObservability(vendor, surfaceID)
-	fields := activeQueryReadableMaterialFields(capability, collectorID, "", false)
+	surface, ok := vendorsupport.SurfaceForID(vendor, surfaceID)
+	if !ok {
+		return nil, status.Errorf(codes.PermissionDenied, "vendor credential material read policy surface %q is unavailable", surfaceID)
+	}
+	fields := quotaQueryReadableMaterialFields(surface.GetObservability(), collectorID, "", false)
 	return materialFieldSet(fields), nil
 }
 
-func activeQueryReadableMaterialFields(
+func quotaQueryReadableMaterialFields(
 	capability *observabilityv1.ObservabilityCapability,
 	collectorID string,
 	defaultCollectorID string,
@@ -131,19 +138,19 @@ func activeQueryReadableMaterialFields(
 	}
 	out := []string{}
 	for _, profile := range capability.GetProfiles() {
-		if profile == nil || profile.GetActiveQuery() == nil {
+		if profile == nil || profile.GetQuotaQuery() == nil {
 			continue
 		}
-		activeQuery := profile.GetActiveQuery()
-		currentCollectorID := strings.TrimSpace(activeQuery.GetCollectorId())
+		quotaQuery := profile.GetQuotaQuery()
+		currentCollectorID := strings.TrimSpace(quotaQuery.GetCollectorId())
 		if currentCollectorID == "" && useDefaultCollector {
 			currentCollectorID = strings.TrimSpace(defaultCollectorID)
 		}
 		if currentCollectorID == "" || currentCollectorID != collectorID {
 			continue
 		}
-		out = append(out, activeQuery.GetMaterialReadFields()...)
-		for _, rule := range activeQuery.GetCredentialBackfills() {
+		out = append(out, quotaQuery.GetMaterialReadFields()...)
+		for _, rule := range quotaQuery.GetCredentialBackfills() {
 			if rule == nil || !rule.GetReadable() {
 				continue
 			}

@@ -1,11 +1,8 @@
 ---
-providerBindings:
-- providerBinding:
-    surfaceId: openai-compatible
-  surfaceTemplates:
-  - runtime:
-      api:
-        baseUrl: https://api.hyperbolic.xyz/v1
-        protocol: PROTOCOL_OPENAI_COMPATIBLE
-      displayName: Hyperbolic OpenAI Compatible
-    surfaceId: openai-compatible
+surfaces:
+- surfaceId: openai-compatible
+  productInfoId: hyperbolic
+  api:
+    apiEndpoints:
+    - protocol: PROTOCOL_OPENAI_COMPATIBLE
+      baseUrl: https://api.hyperbolic.xyz/v1

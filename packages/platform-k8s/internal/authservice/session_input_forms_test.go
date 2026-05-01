@@ -66,42 +66,42 @@ func TestNormalizeSessionInputValuesRequiresMergeTarget(t *testing.T) {
 	}
 }
 
-func testSessionInputForm() *observabilityv1.ActiveQueryInputForm {
-	return &observabilityv1.ActiveQueryInputForm{
+func testSessionInputForm() *observabilityv1.QuotaQueryInputForm {
+	return &observabilityv1.QuotaQueryInputForm{
 		SchemaId:    "mistral-billing-session",
 		Title:       "Update Mistral Session Token",
 		ActionLabel: "Update Session Token",
-		Fields: []*observabilityv1.ActiveQueryInputField{{
+		Fields: []*observabilityv1.QuotaQueryInputField{{
 			FieldId:     "access_token",
 			Label:       "Session token",
 			Required:    true,
 			Sensitive:   true,
-			Control:     observabilityv1.ActiveQueryInputControl_ACTIVE_QUERY_INPUT_CONTROL_PASSWORD,
-			Persistence: observabilityv1.ActiveQueryInputPersistence_ACTIVE_QUERY_INPUT_PERSISTENCE_STORED_MATERIAL,
+			Control:     observabilityv1.QuotaQueryInputControl_QUOTA_QUERY_INPUT_CONTROL_PASSWORD,
+			Persistence: observabilityv1.QuotaQueryInputPersistence_QUOTA_QUERY_INPUT_PERSISTENCE_STORED_MATERIAL,
 		}},
 	}
 }
 
-func testCookieSessionInputForm() *observabilityv1.ActiveQueryInputForm {
-	return &observabilityv1.ActiveQueryInputForm{
+func testCookieSessionInputForm() *observabilityv1.QuotaQueryInputForm {
+	return &observabilityv1.QuotaQueryInputForm{
 		SchemaId:    "google-ai-studio-session",
 		Title:       "Update AI Studio Session",
 		ActionLabel: "Update AI Studio Session",
-		Fields: []*observabilityv1.ActiveQueryInputField{
+		Fields: []*observabilityv1.QuotaQueryInputField{
 			{
 				FieldId:     "cookie",
 				Label:       "Request Cookie",
 				Required:    true,
-				Control:     observabilityv1.ActiveQueryInputControl_ACTIVE_QUERY_INPUT_CONTROL_TEXTAREA,
-				Persistence: observabilityv1.ActiveQueryInputPersistence_ACTIVE_QUERY_INPUT_PERSISTENCE_STORED_MATERIAL,
+				Control:     observabilityv1.QuotaQueryInputControl_QUOTA_QUERY_INPUT_CONTROL_TEXTAREA,
+				Persistence: observabilityv1.QuotaQueryInputPersistence_QUOTA_QUERY_INPUT_PERSISTENCE_STORED_MATERIAL,
 			},
 			{
 				FieldId:       "response_set_cookie",
 				Label:         "Response Set-Cookie",
-				Control:       observabilityv1.ActiveQueryInputControl_ACTIVE_QUERY_INPUT_CONTROL_TEXTAREA,
-				Persistence:   observabilityv1.ActiveQueryInputPersistence_ACTIVE_QUERY_INPUT_PERSISTENCE_TRANSIENT,
+				Control:       observabilityv1.QuotaQueryInputControl_QUOTA_QUERY_INPUT_CONTROL_TEXTAREA,
+				Persistence:   observabilityv1.QuotaQueryInputPersistence_QUOTA_QUERY_INPUT_PERSISTENCE_TRANSIENT,
 				TargetFieldId: "cookie",
-				Transform:     observabilityv1.ActiveQueryInputValueTransform_ACTIVE_QUERY_INPUT_VALUE_TRANSFORM_MERGE_SET_COOKIE,
+				Transform:     observabilityv1.QuotaQueryInputValueTransform_QUOTA_QUERY_INPUT_VALUE_TRANSFORM_MERGE_SET_COOKIE,
 			},
 		},
 	}

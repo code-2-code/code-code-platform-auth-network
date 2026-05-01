@@ -1,25 +1,36 @@
 ---
-providerBindings:
-- observability:
+surfaces:
+- surfaceId: openai-compatible
+  productInfoId: mistral
+  api:
+    apiEndpoints:
+    - protocol: PROTOCOL_OPENAI_COMPATIBLE
+      baseUrl: https://api.mistral.ai/v1
+  observability:
     profiles:
-    - activeQuery:
+    - quotaQuery:
         collectorId: mistral-billing
+        requiresQuotaCredential: true
+        materialReadFields:
+        - cookie
         inputForm:
-          actionLabel: Update Session Token
-          description: Paste the console session token used by the Mistral billing
-            usage query.
+          actionLabel: Update Admin Session
+          description: Paste the Mistral Admin browser Cookie request header used
+            by the billing usage query.
           fields:
-          - control: ACTIVE_QUERY_INPUT_CONTROL_PASSWORD
-            fieldId: access_token
-            label: Session token
-            persistence: ACTIVE_QUERY_INPUT_PERSISTENCE_STORED_MATERIAL
-            placeholder: Paste Mistral session token
+          - control: QUOTA_QUERY_INPUT_CONTROL_TEXTAREA
+            description: Copy the Cookie request header from the Mistral Admin usage
+              request.
+            fieldId: cookie
+            label: Request Cookie
+            persistence: QUOTA_QUERY_INPUT_PERSISTENCE_STORED_MATERIAL
+            placeholder: ory_session_...=...; csrftoken=...
             required: true
             sensitive: true
-          schemaId: mistral-billing-session
-          title: Update Mistral Session Token
+          schemaId: mistral-admin-billing-session
+          title: Update Mistral Admin Session
         minimumPollInterval: 300s
-      displayName: Mistral Billing Usage
+      displayName: Mistral Admin Billing Usage
       metricQueries:
       - displayName: Mistral Input Tokens
         language: METRIC_QUERY_LANGUAGE_PROMQL
@@ -27,8 +38,9 @@ providerBindings:
         - gen_ai.provider.usage.tokens.count
         queryId: mistral_billing_input_tokens
         resultKind: METRIC_QUERY_RESULT_KIND_VECTOR
-        statement: max by (owner_kind, owner_id, vendor_id, access_target_id, provider_id,
-          model_id, resource, window, token_type) (gen_ai_provider_usage_tokens_count{vendor_id="mistral",
+        statement: max by (owner_kind, owner_id, vendor_id, provider_id,
+          model_id, model_label, gen_ai_request_model, mistral_ai_billing_metric,
+          resource, window, token_type, gen_ai_provider_name) (gen_ai_provider_usage_tokens_count{vendor_id="mistral",
           token_type="input"})
       - displayName: Mistral Output Tokens
         language: METRIC_QUERY_LANGUAGE_PROMQL
@@ -36,16 +48,66 @@ providerBindings:
         - gen_ai.provider.usage.tokens.count
         queryId: mistral_billing_output_tokens
         resultKind: METRIC_QUERY_RESULT_KIND_VECTOR
-        statement: max by (owner_kind, owner_id, vendor_id, access_target_id, provider_id,
-          model_id, resource, window, token_type) (gen_ai_provider_usage_tokens_count{vendor_id="mistral",
+        statement: max by (owner_kind, owner_id, vendor_id, provider_id,
+          model_id, model_label, gen_ai_request_model, mistral_ai_billing_metric,
+          resource, window, token_type, gen_ai_provider_name) (gen_ai_provider_usage_tokens_count{vendor_id="mistral",
           token_type="output"})
+      - displayName: Mistral Cached Tokens
+        language: METRIC_QUERY_LANGUAGE_PROMQL
+        metricNames:
+        - gen_ai.provider.usage.tokens.count
+        queryId: mistral_billing_cached_tokens
+        resultKind: METRIC_QUERY_RESULT_KIND_VECTOR
+        statement: max by (owner_kind, owner_id, vendor_id, provider_id,
+          model_id, model_label, gen_ai_request_model, mistral_ai_billing_metric,
+          resource, window, token_type, gen_ai_provider_name) (gen_ai_provider_usage_tokens_count{vendor_id="mistral",
+          token_type="cached"})
+      - displayName: Mistral Monthly Cost
+        language: METRIC_QUERY_LANGUAGE_PROMQL
+        metricNames:
+        - gen_ai.provider.usage.cost
+        queryId: mistral_billing_cost
+        resultKind: METRIC_QUERY_RESULT_KIND_VECTOR
+        statement: max by (owner_kind, owner_id, vendor_id, provider_id,
+          model_id, model_label, gen_ai_request_model, mistral_ai_billing_metric,
+          resource, window, scope, usage_category, currency, currency_symbol, gen_ai_provider_name)
+          (gen_ai_provider_usage_cost{vendor_id="mistral"})
+      - displayName: Mistral Quota Limit
+        language: METRIC_QUERY_LANGUAGE_PROMQL
+        metricNames:
+        - gen_ai.provider.quota.limit
+        queryId: mistral_quota_limit
+        resultKind: METRIC_QUERY_RESULT_KIND_VECTOR
+        statement: max by (owner_kind, owner_id, vendor_id, provider_id,
+          model_id, resource, window, quota_pool_id) (gen_ai_provider_quota_limit{vendor_id="mistral"})
+      - displayName: Mistral Quota Usage
+        language: METRIC_QUERY_LANGUAGE_PROMQL
+        metricNames:
+        - gen_ai.provider.quota.usage
+        queryId: mistral_quota_usage
+        resultKind: METRIC_QUERY_RESULT_KIND_VECTOR
+        statement: max by (owner_kind, owner_id, vendor_id, provider_id,
+          resource, window, quota_pool_id) (gen_ai_provider_quota_usage{vendor_id="mistral"})
+      - displayName: Mistral Quota Remaining
+        language: METRIC_QUERY_LANGUAGE_PROMQL
+        metricNames:
+        - gen_ai.provider.quota.remaining
+        queryId: mistral_quota_remaining
+        resultKind: METRIC_QUERY_RESULT_KIND_VECTOR
+        statement: max by (owner_kind, owner_id, vendor_id, provider_id,
+          resource, window, quota_pool_id) (gen_ai_provider_quota_remaining{vendor_id="mistral"})
+      - displayName: Mistral Quota Reset
+        language: METRIC_QUERY_LANGUAGE_PROMQL
+        metricNames:
+        - gen_ai.provider.quota.reset.timestamp.seconds
+        queryId: mistral_quota_reset
+        resultKind: METRIC_QUERY_RESULT_KIND_VECTOR
+        statement: max by (owner_kind, owner_id, vendor_id, provider_id,
+          resource, window, quota_pool_id) (gen_ai_provider_quota_reset_timestamp_seconds{vendor_id="mistral"})
       metrics:
       - attributes:
         - description: Stable vendor identifier.
           name: vendor_id
-          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
-        - description: Stable access target identifier.
-          name: access_target_id
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
         - description: Stable provider identifier.
           name: provider_id
@@ -53,30 +115,173 @@ providerBindings:
         - description: Provider model identifier.
           name: model_id
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: User-facing model label returned by Mistral.
+          name: model_label
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: OpenTelemetry request model label derived from the Mistral
+            usage bucket.
+          name: gen_ai_request_model
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Mistral billing metric used to align usage with limit model
+            keys.
+          name: mistral_ai_billing_metric
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
         - description: Usage resource type.
           name: resource
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
         - description: Usage time window.
           name: window
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
-        - description: Token direction (input or output).
+        - description: Token direction (input, output, or cached).
           name: token_type
           requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: OpenTelemetry GenAI provider name for Mistral AI.
+          name: gen_ai_provider_name
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
         category: OBSERVABILITY_METRIC_CATEGORY_USAGE
-        description: Token usage from the Mistral console billing API, per model and
+        description: Token usage from the Mistral Admin billing API, per model and
           token type.
         kind: OBSERVABILITY_METRIC_KIND_GAUGE
         name: gen_ai.provider.usage.tokens.count
-        unit: '{token}'
+        unit: "{token}"
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Provider model identifier for model-scoped cost rows.
+          name: model_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: User-facing model label returned by Mistral.
+          name: model_label
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: OpenTelemetry request model label derived from the Mistral
+            usage bucket.
+          name: gen_ai_request_model
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Mistral billing metric used to align usage with limit model
+            keys.
+          name: mistral_ai_billing_metric
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Cost resource marker.
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Usage time window.
+          name: window
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Cost row scope (total, model, or category).
+          name: scope
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Mistral billing usage category.
+          name: usage_category
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: ISO currency code returned by Mistral.
+          name: currency
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Currency symbol returned by Mistral.
+          name: currency_symbol
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: OpenTelemetry GenAI provider name for Mistral AI.
+          name: gen_ai_provider_name
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        category: OBSERVABILITY_METRIC_CATEGORY_USAGE
+        description: Monthly Mistral cost computed from Admin billing usage and response
+          price rows. Currency is carried as attributes instead of being encoded in
+          the metric name.
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.usage.cost
+        unit: '1'
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Provider model identifier when the limit is model-scoped by
+            the Mistral response.
+          name: model_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Quota identifier for account-level billing cap rows.
+          name: quota_pool_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limited resource type.
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limit time window.
+          name: window
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        category: OBSERVABILITY_METRIC_CATEGORY_QUOTA
+        description: Mistral Admin limit value for one model limit or billing cap.
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.quota.limit
+        unit: '1'
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Quota identifier for account-level billing cap rows.
+          name: quota_pool_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limited resource type.
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limit time window.
+          name: window
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        category: OBSERVABILITY_METRIC_CATEGORY_USAGE
+        description: Mistral Admin usage value for quota dimensions that provide an
+          explicit usage counter.
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.quota.usage
+        unit: '1'
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Quota identifier for account-level billing cap rows.
+          name: quota_pool_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limited resource type.
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Rate limit time window.
+          name: window
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        category: OBSERVABILITY_METRIC_CATEGORY_QUOTA
+        description: Mistral Admin remaining value for quota dimensions that provide
+          enough information to compute it without provider API consumption.
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.quota.remaining
+        unit: '1'
+      - attributes:
+        - description: Stable vendor identifier.
+          name: vendor_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Stable provider identifier.
+          name: provider_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_REQUIRED
+        - description: Quota identifier for account-level billing cap rows.
+          name: quota_pool_id
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Reset resource type.
+          name: resource
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        - description: Reset time window.
+          name: window
+          requirementLevel: OBSERVABILITY_ATTRIBUTE_REQUIREMENT_LEVEL_RECOMMENDED
+        category: OBSERVABILITY_METRIC_CATEGORY_QUOTA
+        description: Unix timestamp for the next Mistral monthly billing reset.
+        kind: OBSERVABILITY_METRIC_KIND_GAUGE
+        name: gen_ai.provider.quota.reset.timestamp.seconds
+        unit: s
       profileId: billing_usage
-  providerBinding:
-    surfaceId: openai-compatible
-  providerCard:
-    enabled: true
-  surfaceTemplates:
-  - runtime:
-      api:
-        baseUrl: https://api.mistral.ai/v1
-        protocol: PROTOCOL_OPENAI_COMPATIBLE
-      displayName: Mistral OpenAI Compatible
-    surfaceId: openai-compatible
+  quotaProbeId: mistral-billing

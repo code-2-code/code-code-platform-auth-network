@@ -169,6 +169,43 @@ func TestServiceProbeSupportsPostJSONBodyAndHeaders(t *testing.T) {
 	}
 }
 
+func TestServiceProbeUsesOperationBaseURLOverride(t *testing.T) {
+	t.Parallel()
+
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got, want := r.URL.Path, "/ai/models/search"; got != want {
+			t.Fatalf("path = %q, want %q", got, want)
+		}
+		_, _ = w.Write([]byte(`{"result":[{"name":"@cf/meta/llama-3.1-8b-instruct"}]}`))
+	}))
+	defer upstream.Close()
+
+	service, err := NewService(httpClientFactoryFunc(func(context.Context) (*http.Client, error) {
+		return upstream.Client(), nil
+	}))
+	if err != nil {
+		t.Fatalf("NewService() error = %v", err)
+	}
+
+	modelIDs, err := fetchModelIDs(context.Background(), service, Request{
+		BaseURL: upstream.URL + "/ai/v1",
+		Operation: &modelcatalogdiscoveryv1.ModelCatalogDiscoveryOperation{
+			BaseUrl:      upstream.URL + "/ai",
+			Path:         "models/search",
+			ResponseKind: modelcatalogdiscoveryv1.ModelCatalogDiscoveryResponseKind_MODEL_CATALOG_DISCOVERY_RESPONSE_KIND_OPENAI_MODELS,
+		},
+	})
+	if err != nil {
+		t.Fatalf("fetchModelIDs() error = %v", err)
+	}
+	if got, want := len(modelIDs), 1; got != want {
+		t.Fatalf("len(modelIDs) = %d, want %d", got, want)
+	}
+	if got, want := modelIDs[0], "@cf/meta/llama-3.1-8b-instruct"; got != want {
+		t.Fatalf("modelIDs[0] = %q, want %q", got, want)
+	}
+}
+
 func fetchModelIDs(ctx context.Context, service *Service, request Request) ([]string, error) {
 	response, err := service.Fetch(ctx, request)
 	if err != nil {
