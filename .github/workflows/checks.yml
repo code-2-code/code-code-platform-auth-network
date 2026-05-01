@@ -35,7 +35,7 @@ jobs:
           while IFS= read -r file; do dependency_files+=("$file"); done < <(find . \( -name go.mod -o -name package.json \) -print)
           aggregate_pattern='github.com/code-2-code/code-code-(''platform|console)(\.git)?|code-code-(''platform|console)(/|$)'
           if [ "${#dependency_files[@]}" -gt 0 ] && git grep -n -E "$aggregate_pattern" -- "${dependency_files[@]}"; then echo "::error::focused repositories must not depend on aggregate repositories"; exit 1; fi
-          credential_pattern='(gh[pousr]_[A-Za-z0-9_]{30,}|github_''pat_[A-Za-z0-9_]+|://[^/@[:space:]]+:[^/@[:space:]]+@|_auth''Token=|Authori''zation:|pass''word=|sec''ret=|api''key=|api_''key=)'
+          credential_pattern='(gh[pousr]_[A-Za-z0-9_]{30,}|github_''pat_[A-Za-z0-9_]+|://[^/@[:space:]]+:[^/@[:space:]]+@|_auth''Token=|(^|[[:space:]])Authori''zation:[[:space:]]|pass''word=|sec''ret=|api''key=|api_''key=)'
           if git grep -n -E "$credential_pattern" -- ':!**/go.sum' ':!**/pnpm-lock.yaml'; then echo "::error::credential-looking material is not allowed in the repository"; exit 1; fi
 
       - name: Set up Go
