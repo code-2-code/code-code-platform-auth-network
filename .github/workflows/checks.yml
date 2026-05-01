@@ -1,0 +1,57 @@
+name: Checks
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify auth network
+    runs-on: code-code-k8s
+    timeout-minutes: 25
+    env:
+      GOTOOLCHAIN: local
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Guard repository boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -R -n "pull""_request:" .github/workflows 2>/dev/null; then echo "::error::public self-hosted CI must not run on pull_request events"; exit 1; fi
+          network_pattern='go''proxy\.cn|npm''mirror|tuna\.tsing''hua|mirrors\.ali''yun|mirrors\.hua''weicloud|192\.168\.0\.115:10809|ghcr\.m\.dao''cloud'
+          if git grep -n -E "$network_pattern" -- ':!**/go.sum' ':!**/pnpm-lock.yaml'; then echo "::error::repository must stay free of committed local mirror or proxy values"; exit 1; fi
+          dependency_files=(); [ ! -f .gitmodules ] || dependency_files+=(.gitmodules)
+          while IFS= read -r file; do dependency_files+=("$file"); done < <(find . \( -name go.mod -o -name package.json \) -print)
+          aggregate_pattern='github.com/code-2-code/code-code-(''platform|console)(\.git)?|code-code-(''platform|console)(/|$)'
+          if [ "${#dependency_files[@]}" -gt 0 ] && git grep -n -E "$aggregate_pattern" -- "${dependency_files[@]}"; then echo "::error::focused repositories must not depend on aggregate repositories"; exit 1; fi
+          credential_pattern='(gh[pousr]_[A-Za-z0-9_]{30,}|github_''pat_[A-Za-z0-9_]+|://[^/@[:space:]]+:[^/@[:space:]]+@|_auth''Token=|Authori''zation:|pass''word=|sec''ret=|api''key=|api_''key=)'
+          if git grep -n -E "$credential_pattern" -- ':!**/go.sum' ':!**/pnpm-lock.yaml'; then echo "::error::credential-looking material is not allowed in the repository"; exit 1; fi
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: packages/platform-k8s/go.mod
+          cache: false
+
+      - name: Test agent runtime contracts
+        working-directory: packages/agent-runtime-contract
+        run: go test ./...
+
+      - name: Test platform contract helpers
+        working-directory: packages/platform-contract
+        run: go test ./...
+
+      - name: Test auth network services
+        working-directory: packages/platform-k8s
+        run: go test ./internal/authservice/... ./internal/egressservice/... ./internal/egressauth/... ./internal/egressauthpolicy/... ./internal/sessioncookie/... ./cmd/platform-auth-service ./cmd/platform-egress-service
